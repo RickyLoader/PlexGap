@@ -1,16 +1,24 @@
 public class Movie{
     private String title;
-    private String id;
+    private String TMDBId;
+    private String IMDBId;
+    private String releaseDate;
     private String collection;
 
-    public Movie(String title, String id, String collection){
+    public Movie(String title, String TMDBId, String IMDBId,String collection,String releaseDate){
         this.title = title;
-        this.id = id;
+        this.TMDBId = TMDBId;
+        this.IMDBId = IMDBId;
         this.collection = collection;
+        this.releaseDate = releaseDate;
+    }
+
+    public String getReleaseDate() {
+        return releaseDate;
     }
 
     public String getId(){
-        return id;
+        return TMDBId;
     }
 
     public String getCollection(){
@@ -23,5 +31,13 @@ public class Movie{
 
     public boolean isCollection(){
         return collection != null;
+    }
+
+    public void getSummary(){
+        System.out.println("title: "+title+"\n"+"id: "+TMDBId+"\n"+"collection: "+collection);
+    }
+
+    public String getIMDBId() {
+        return IMDBId;
     }
 }

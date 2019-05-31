@@ -18,12 +18,12 @@ public class Collection{
     }
 
     public void addMovie(Movie movie){
-        String summary = "Trying to put "+movie.getId() + " in to the collection, current values: ";
+        String summary = "Trying to put "+movie.getTMDBId() + " in to the collection, current values: ";
         for(String id:movies.keySet()){
             summary+=id+" " + movies.get(id)+"\n";
         }
         System.out.println(summary);
-        movies.put(movie.getId(), true);
+        movies.put(movie.getTMDBId(), true);
     }
 
     public boolean collectionComplete(){

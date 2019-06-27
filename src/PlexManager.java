@@ -26,22 +26,50 @@ import java.util.regex.Pattern;
 
 public class PlexManager {
 
-    private static String ip = "http://192.168.1.138:32400/library/";
-    private static String plexToken = "?X-Plex-Token=CfsgymkTZzteGH78at3f";
+    private static String ip = ":32400/library/";
+    private static String plexToken = "?X-Plex-Token=";
+    private static String tmdbKey = null;
 
     public static void main(String[] args) {
-        ArrayList<Movie> movies = promptSource();
-        Scanner scan = new Scanner(System.in);
-        System.out.println("\n\nWhat would you like to do with your movies?\n\n1. Find missing sequels\n");
-        switch(scan.nextLine()) {
-            case "1":
-                findMissingSequels(movies);
-                break;
+        if(getCredentials()) {
+            ArrayList<Movie> movies = promptSource();
+            Scanner scan = new Scanner(System.in);
+            System.out.println("\n\nWhat would you like to do with your movies?\n\n1. Find missing sequels\n");
+            switch(scan.nextLine()) {
+                case "1":
+                    findMissingSequels(movies);
+                    break;
+            }
         }
     }
 
+    private static boolean getCredentials() {
+        boolean authenticated = false;
+        try {
+            String file = new String(Files.readAllBytes(Paths.get("src/credentials.json")), "utf-8");
+            JSONObject credentials = new JSONObject(file);
+
+            String location = credentials.getString("plex_ip");
+            String auth = credentials.getString("plex_token");
+            String tmdb = credentials.getString("tmdb_api_key");
+            if(!location.isEmpty() && !auth.isEmpty() && !tmdb.isEmpty()) {
+                authenticated = true;
+                ip = "http://" + location;
+                plexToken = auth + plexToken;
+                tmdbKey = tmdb;
+            }
+            else {
+                System.out.println("Error in credentials.json, make sure your plex token and ip are entered correctly.");
+            }
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+        return authenticated;
+    }
+
     /**
-     * Create a list of movies found from the Plex API or a previously created JSON file
+     * Create a list of movies found from the Plex API or a previously built JSON file
      *
      * @return ArrayList of movie objects
      */
@@ -92,7 +120,7 @@ public class PlexManager {
     private static String getFilename(Boolean reading) {
         String msg = "Please enter the path (including file extension) to your JSON file:";
         if(!reading) {
-            msg = "Please enter path for the movies to be saved in JSON format:";
+            msg = "Please enter a full path and filename (including file extension) for the movies to be saved in JSON format:";
         }
         String filename = null;
         Scanner scan = new Scanner(System.in);
@@ -146,7 +174,7 @@ public class PlexManager {
                 Element element = (Element) movieContainer;
                 System.out.println("Getting info for movie " + (i + 1) + "/" + movieContainers.getLength());
 
-                // Query separate endpoint for in depth movie information using its' unique ratingKey
+                // Query separate endpoint for in depth movie information using its unique ratingKey
                 String specificMovieEndpoint = ip + "metadata/" + element.getAttribute("ratingKey") + "/" + plexToken;
                 Element specificRoot = getXML(specificMovieEndpoint);
 
@@ -201,7 +229,7 @@ public class PlexManager {
 
         if(matcher.find()) {
             id = guid.substring(matcher.start(), matcher.end());
-            String url = "https://api.themoviedb.org/3/movie/" + id + "?api_key=f6cb28abe2c490942956b7768bd18d79&language=en-US";
+            String url = "https://api.themoviedb.org/3/movie/" + id + "?api_key=" + tmdbKey + "&language=en-US";
             json = jsonRequest(url);
         }
         return json;
@@ -284,11 +312,15 @@ public class PlexManager {
 
         for(Movie movie : movies) {
             if(movie.isCollection()) {
-                System.out.println("Getting collection for movie " + (hits + 1));
+                System.out.println("Checking " + movie.getTitle() + " (" + (hits + 1) + "/" + movies.size() + ")");
                 String id = movie.getCollection();
 
-                // If the collection has not been seen before
-                if(!collections.containsKey(id)) {
+                // If the collection has been seen before
+                if(collections.containsKey(id)) {
+                    System.out.println(movie.getTitle() + " is a member of the " + collections.get(id).getTitle() + " collection - marking as seen\n\n");
+                }
+                else {
+                    System.out.println(movie.getTitle() + " is a member of a collection which has not yet been seen - fetching collection info...\n");
                     try {
                         if(hits % 30 == 0) {
                             sleep(5000);
@@ -298,11 +330,12 @@ public class PlexManager {
                         e.printStackTrace();
                     }
                     // Query TMDB for the movies belonging to the collection
-                    String url = "https://api.themoviedb.org/3/collection/" + id + "?api_key=f6cb28abe2c490942956b7768bd18d79&language=en-US";
+                    String url = "https://api.themoviedb.org/3/collection/" + id + "?api_key=" + tmdbKey + "&language=en-US";
 
                     // Create an object to hold the collection information and store it in the map
                     String collectionJson = jsonRequest(url);
                     Collection collection = getCollectionInfo(id, collectionJson);
+                    System.out.println("Collection has been found - " + movie.getTitle() + " belongs to the " + collection.getTitle() + " collection\n\n");
                     collections.put(collection.getId(), collection);
                     hits++;
                 }

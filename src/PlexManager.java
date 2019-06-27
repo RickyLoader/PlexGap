@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 
 public class PlexManager {
 
-    private static String ip = ":32400/library/";
+    private static String ip = ":32400/library";
     private static String plexToken = "?X-Plex-Token=";
     private static String tmdbKey = null;
 
@@ -54,7 +54,7 @@ public class PlexManager {
             String tmdb = credentials.getString("tmdb_api_key");
             if(!location.isEmpty() && !auth.isEmpty() && !tmdb.isEmpty()) {
                 authenticated = true;
-                ip = "http://" + location;
+                ip = "http://" + location + ip;
                 plexToken = plexToken + auth;
                 tmdbKey = tmdb;
             }
@@ -125,7 +125,7 @@ public class PlexManager {
         String filename = null;
         Scanner scan = new Scanner(System.in);
         boolean valid = false;
-        while(!valid || filename == null) {
+        while(!valid || filename == null || filename.isEmpty()) {
             System.out.println(msg);
             filename = scan.nextLine();
             valid = fileExists(filename, reading);
@@ -175,7 +175,7 @@ public class PlexManager {
                 System.out.println("Getting info for movie " + (i + 1) + "/" + movieContainers.getLength());
 
                 // Query separate endpoint for in depth movie information using its unique ratingKey
-                String specificMovieEndpoint = ip + "metadata/" + element.getAttribute("ratingKey") + "/" + plexToken;
+                String specificMovieEndpoint = ip + "/metadata/" + element.getAttribute("ratingKey") + "/" + plexToken;
                 Element specificRoot = getXML(specificMovieEndpoint);
 
                 // In depth movie information

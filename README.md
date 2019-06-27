@@ -48,7 +48,7 @@ Where would you like to read your Plex library in from?
 As obtaining the information for all movies in your plex library is a time consuming process, the application will save the relevant 
 data in a json file as it is found.
 
-If you have run the application before and haven't added anything new to your library, you can opt to provide the path (including extension) to this json file
+If you have run the application before and haven't added anything new to your library that you'd like to include, you can opt to provide the path (including extension) to this json file
 to prevent having to go through the process again.
 
 ### Plex API

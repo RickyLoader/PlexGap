@@ -335,7 +335,7 @@ public class PlexManager {
                     // Create an object to hold the collection information and store it in the map
                     String collectionJson = jsonRequest(url);
                     Collection collection = getCollectionInfo(id, collectionJson);
-                    System.out.println("Collection has been found - " + movie.getTitle() + " belongs to the " + collection.getTitle() + " collection\n\n");
+                    System.out.println("Collection has been found - " + movie.getTitle() + " belongs to the " + collection.getTitle()+"\n\n");
                     collections.put(collection.getId(), collection);
                     hits++;
                 }

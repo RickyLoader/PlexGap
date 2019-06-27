@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 
 public class PlexManager {
 
-    private static String ip = ":32400/library";
+    private static String ip = "/library";
     private static String plexToken = "?X-Plex-Token=";
     private static String tmdbKey = null;
 

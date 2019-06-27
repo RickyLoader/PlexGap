@@ -46,7 +46,7 @@ public class PlexManager {
     private static boolean getCredentials() {
         boolean authenticated = false;
         try {
-            String file = new String(Files.readAllBytes(Paths.get("src/credentials.json")), "utf-8");
+            String file = new String(Files.readAllBytes(Paths.get("credentials.json")), "utf-8");
             JSONObject credentials = new JSONObject(file);
 
             String location = credentials.getString("plex_ip");

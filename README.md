@@ -32,7 +32,7 @@ You will now be asked to input information about the application that will use t
 Once done, your API key will be located under `API Key (v3 auth)`
 
 ## Running the application
-Make sure the credentials.json and jar file are in the same directory and type `java -jar PlexGap.jar` in CMD.
+Make sure credentials.json and the jar file are in the same directory and type `java -jar PlexGap.jar` in CMD.
 
 
 When running the application you will be asked to select an option: 

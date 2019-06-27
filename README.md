@@ -55,7 +55,7 @@ to prevent having to go through the process again.
 
 You will be prompted to provide a path for where the application should save the data that is found in json format.
 
-E.g: `C:Users\Me\Desktop\movies.json` or `movies.json` etc.
+E.g: `C:Users\Me\Desktop\movies.json` or `missing.json` etc.
 
 This file will be created, and can be used to quickly run the application again without going through the below process.
 

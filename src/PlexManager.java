@@ -55,7 +55,7 @@ public class PlexManager {
             if(!location.isEmpty() && !auth.isEmpty() && !tmdb.isEmpty()) {
                 authenticated = true;
                 ip = "http://" + location;
-                plexToken = auth + plexToken;
+                plexToken = plexToken + auth;
                 tmdbKey = tmdb;
             }
             else {
@@ -158,7 +158,7 @@ public class PlexManager {
         writeToFile(filename, "{\"movies\":[");
         ArrayList<Movie> movies = new ArrayList<>();
 
-        String allMovieEndpoint = ip + "sections/1/all/" + plexToken;
+        String allMovieEndpoint = ip + "/sections/1/all/" + plexToken;
         try {
 
             // XML file representing basic information on all movies in library

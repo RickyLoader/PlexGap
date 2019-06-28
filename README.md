@@ -88,9 +88,9 @@ This will provide a list of items which belong to the collection.
 
 As items belonging to the same collection are found, they are marked as seen in this list.
 
-This process does not take too long as only one API call is made per collection, however the application must sleep for 10 seconds every 40 calls (40 new collections checked) to respect the rate limit.
+This process does not take long as only one API call is made per collection, however the application must sleep for 10 seconds every 40 calls (40 new collections checked) to respect the rate limit.
 
-Upon checking all movies, you will be prompted with a link e.g:
+Upon checking all movies, you will be prompted with a link to follow:
 
 ```
 Please visit:
@@ -102,8 +102,16 @@ To approve the application, this allows it to create a TMDB list containing your
 Type "ok" when ready:
 ```
 
-TMDB has a multi part authentication system to allow applications to write to your profile.
+This is due to TMDB requiring multi part authentication in allowing applications to write to your profile.
 
-First it passes your provided read access token to obtain a request token. You must then follow the provided link to approve this request, allowing the application to use the approved request token to obtain an access token grantingn temporary permission to write data to your profile.
+First it passes your provided `read access token` to obtain a `request token`. You must then follow the provided link to approve this request, allowing the application to use the `approved request token` to obtain an `access token` granting temporary permission to write data to your profile.
 
-Once you have approved this request and typed `ok`, 
+Once you have approved this request and typed `ok`, you will be asked to provide a name for your list, and then be directed to the newly created list:
+
+```
+Your list has been created!
+
+Visit:
+
+https://www.themoviedb.org/list/{NEW_LIST_ID}
+```

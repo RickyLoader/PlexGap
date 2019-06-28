@@ -1,10 +1,10 @@
 public class Movie {
-    private String title;
-    private String TMDBId;
-    private String IMDBId;
-    private String releaseDate;
-    private String collection;
-    private String rating;
+    private final String title;
+    private final String TMDBId;
+    private final String IMDBId;
+    private final String releaseDate;
+    private final String collection;
+    private final String rating;
 
     public Movie(String title, String TMDBId, String IMDBId, String collection, String releaseDate, String rating) {
         this.title = title;

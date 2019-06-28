@@ -1,10 +1,10 @@
 import java.util.HashMap;
 
 public class Collection {
-    private String title;
-    private HashMap<String, Boolean> movies;
-    private HashMap<String, String> titles;
-    private String id;
+    private final String title;
+    private final HashMap<String, Boolean> movies;
+    private final HashMap<String, String> titles;
+    private final String id;
 
     public Collection(String id, String title, HashMap<String, Boolean> movies, HashMap<String, String> titles) {
         this.title = title;

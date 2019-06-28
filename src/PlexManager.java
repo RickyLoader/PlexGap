@@ -26,7 +26,7 @@ public class PlexManager {
     private static String plexToken = "?X-Plex-Token=";
     private static String tmdbKey = null;
     private static String tmdbReadToken = null;
-    private static OkHttpClient client = new OkHttpClient();
+    private static final OkHttpClient client = new OkHttpClient();
 
     public static void main(String[] args) {
         if(getCredentials()) {
@@ -371,7 +371,7 @@ public class PlexManager {
         body = body.substring(0, body.length() - 1);
         body += "]}";
         String accessToken = getWriteAccess();
-        System.out.println("Creating list...\n\n");
+        System.out.println("\n\nCreating list...\n\n");
         String listID = createList(accessToken);
 
         HashMap<String, String> headers = new HashMap<>();

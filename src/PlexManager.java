@@ -103,7 +103,7 @@ public class PlexManager {
                 movies = getPlexMovies();
                 break;
         }
-        System.out.println(movies.size() + " movies found!");
+        System.out.println("\n\n" + movies.size() + " movies found!\n\n");
         return movies;
     }
 

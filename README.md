@@ -106,7 +106,7 @@ This is due to TMDB requiring multi part authentication in allowing applications
 
 First the application passes your provided `read access token` to obtain a `request token`. 
 
-You must then follow the provided link to approve this request token.
+You must then follow the provided link to approve this request token, and confirm to the application that this has been done.
 
 This allows the application to use the now `approved request token` to obtain an `access token`, finally granting temporary permission to write data to your profile.
 

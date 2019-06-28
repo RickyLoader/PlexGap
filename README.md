@@ -119,6 +119,6 @@ Visit:
 
 https://www.themoviedb.org/list/{NEW_LIST_ID}
 ```
-##Note
+## Note
 
 TMDB collections are curated but can be quite broad - (There is a singular James Bond collection, not split by actor)

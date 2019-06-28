@@ -11,7 +11,7 @@ To get started, edit credentials.json and provide the required credentials.
 
 A temporary Plex token can be found by right clicking a movie in your library, selecting `Get Info` from the drop down, and then clicking `View XML`.
 
-The token is located in the address bar as `X-Plex-Token=YOURTOKENHERE`, only the `YOURTOKENHERE` is required.
+The token is located in the address bar as `X-Plex-Token=YOUR_TOKEN_HERE`, only `YOUR_TOKEN_HERE` is required.
 
 ### Plex IP
 

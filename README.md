@@ -97,7 +97,9 @@ Please visit:
 
 https://www.themoviedb.org/auth/access?request_token={YOUR_REQUEST_TOKEN_HERE}
 
-To approve the application, this allows it to create a TMDB list containing your missing movies.
+To approve the application.
+
+This allows it to create a TMDB list containing your missing movies.
 
 Type "ok" when ready:
 ```

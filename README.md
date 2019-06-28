@@ -110,7 +110,7 @@ You must then follow the provided link to approve this request token, and confir
 
 This allows the application to use the now `approved request token` to obtain an `access token`, finally granting temporary permission to write data to your profile.
 
-Once you have approved this request and typed `ok`, you will be asked to provide a name for your list, and then be directed to the newly created list:
+Once you have approved this request and typed `ok`, you will be asked to provide a name for your list, and then be directed to the newly created TMDB list containing all of the missing movies that were found:
 
 ```
 Your list has been created!

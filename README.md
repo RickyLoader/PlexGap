@@ -88,7 +88,7 @@ This will provide a list of items which belong to the collection.
 
 As items belonging to the same collection are found, they are marked as seen in this list.
 
-This process does not take long as only one API call is made per collection, however the application must sleep for 10 seconds every 40 calls (40 new collections checked) to respect the rate limit.
+This process does not take long as only one API call is made per collection, however the application must sleep on occasion to respect the rate limit.
 
 Upon checking all movies, you will be prompted with a link to follow:
 

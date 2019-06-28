@@ -35,10 +35,10 @@ public class Collection {
     }
 
     public String getSummary() {
-        StringBuilder summary = new StringBuilder(title + ":\n");
+        StringBuilder summary = new StringBuilder();
         for(String movie : movies.keySet()) {
             if(!movies.get(movie)) {
-                summary.append(titles.get(movie) + " \n");
+                summary.append("{\"media_type\":\"movie\",\"media_id\":" + Integer.valueOf(movie) + "},");
             }
         }
         return summary.toString();

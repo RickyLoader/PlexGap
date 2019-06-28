@@ -1,5 +1,6 @@
 import static java.lang.Thread.sleep;
 
+import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -11,16 +12,11 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Scanner;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,6 +25,8 @@ public class PlexManager {
     private static String ip = "/library";
     private static String plexToken = "?X-Plex-Token=";
     private static String tmdbKey = null;
+    private static String tmdbReadToken = null;
+    private static OkHttpClient client = new OkHttpClient();
 
     public static void main(String[] args) {
         if(getCredentials()) {
@@ -43,6 +41,22 @@ public class PlexManager {
         }
     }
 
+    private static String createList(String accessToken) {
+        HashMap<String, String> headers = new HashMap<>();
+        headers.put("authorization", "Bearer " + accessToken);
+        headers.put("content-type", "application/json;charset=utf-8");
+
+        Scanner scan = new Scanner(System.in);
+        String name = "";
+        System.out.println("Enter a name for your list:\n\n");
+        while(name.isEmpty()) {
+            name = scan.nextLine();
+        }
+        String body = "{" + "\"name\"" + ":" + "\"" + name + "\",\"iso_639_1\":\"en\"}";
+        String json = jsonPostRequest("https://api.themoviedb.org/4/list", body, headers);
+        return getJsonValue(json, "id", true);
+    }
+
     private static boolean getCredentials() {
         boolean authenticated = false;
         try {
@@ -52,11 +66,14 @@ public class PlexManager {
             String location = credentials.getString("plex_ip");
             String auth = credentials.getString("plex_token");
             String tmdb = credentials.getString("tmdb_api_key");
-            if(!location.isEmpty() && !auth.isEmpty() && !tmdb.isEmpty()) {
+            String readToken = credentials.getString("tmdb_read_access_token");
+
+            if(!location.isEmpty() && !auth.isEmpty() && !tmdb.isEmpty() && !readToken.isEmpty()) {
                 authenticated = true;
                 ip = "http://" + location + ip;
                 plexToken = plexToken + auth;
                 tmdbKey = tmdb;
+                tmdbReadToken = readToken.trim();
             }
             else {
                 System.out.println("Error in credentials.json, make sure your plex token and ip are entered correctly.");
@@ -166,7 +183,6 @@ public class PlexManager {
 
             // All XML movie children
             NodeList movieContainers = generalRoot.getElementsByTagName("Video");
-
             for(int i = 0; i < movieContainers.getLength(); i++) {
 
                 // Get basic information on single movie
@@ -230,7 +246,7 @@ public class PlexManager {
         if(matcher.find()) {
             id = guid.substring(matcher.start(), matcher.end());
             String url = "https://api.themoviedb.org/3/movie/" + id + "?api_key=" + tmdbKey + "&language=en-US";
-            json = jsonRequest(url);
+            json = jsonGetRequest(url);
         }
         return json;
     }
@@ -264,10 +280,10 @@ public class PlexManager {
         String collection = getCollection(json);
 
         try {
-            String TMDBId = String.valueOf(json.getInt("id"));
             String IMDBId = json.getString("imdb_id");
             String date = json.getString("release_date");
             String title = json.getString("original_title");
+            String TMDBId = String.valueOf(json.getInt("id"));
             String rating = String.valueOf(json.getDouble("vote_average"));
             result = new Movie(title, TMDBId, IMDBId, collection, date, rating);
         }
@@ -309,10 +325,10 @@ public class PlexManager {
 
         // API has a query limit
         int hits = 0;
-
+        int count = 1;
         for(Movie movie : movies) {
             if(movie.isCollection()) {
-                System.out.println("Checking " + movie.getTitle() + " (" + (hits + 1) + "/" + movies.size() + ")");
+                System.out.println("Checking " + movie.getTitle() + " (" + (count) + "/" + movies.size() + ")");
                 String id = movie.getCollection();
 
                 // If the collection has been seen before
@@ -321,21 +337,14 @@ public class PlexManager {
                 }
                 else {
                     System.out.println(movie.getTitle() + " is a member of a collection which has not yet been seen - fetching collection info...\n");
-                    try {
-                        if(hits % 30 == 0) {
-                            sleep(5000);
-                        }
-                    }
-                    catch(Exception e) {
-                        e.printStackTrace();
-                    }
+
                     // Query TMDB for the movies belonging to the collection
                     String url = "https://api.themoviedb.org/3/collection/" + id + "?api_key=" + tmdbKey + "&language=en-US";
 
                     // Create an object to hold the collection information and store it in the map
-                    String collectionJson = jsonRequest(url);
+                    String collectionJson = jsonGetRequest(url);
                     Collection collection = getCollectionInfo(id, collectionJson);
-                    System.out.println("Collection has been found - " + movie.getTitle() + " belongs to the " + collection.getTitle()+"\n\n");
+                    System.out.println("Collection has been found - " + movie.getTitle() + " belongs to the " + collection.getTitle() + "\n\n");
                     collections.put(collection.getId(), collection);
                     hits++;
                 }
@@ -343,15 +352,34 @@ public class PlexManager {
                 // Else mark the current movie as present in the library
                 collections.get(id).addMovie(movie);
             }
+            count += 1;
         }
+        updateList(collections);
+    }
 
-        // Loop through the collections and print the summary of all incomplete collections
+    private static void updateList(HashMap<String, Collection> collections) {
+
+        StringBuilder json = new StringBuilder("{\"items\":[");
+
         for(String id : collections.keySet()) {
             Collection c = collections.get(id);
             if(!c.collectionComplete()) {
-                System.out.println(c.getSummary());
+                json.append(c.getSummary());
             }
         }
+        String body = json.toString();
+        body = body.substring(0, body.length() - 1);
+        body += "]}";
+        String accessToken = getWriteAccess();
+        System.out.println("Creating list...\n\n");
+        String listID = createList(accessToken);
+
+        HashMap<String, String> headers = new HashMap<>();
+        headers.put("authorization", "Bearer " + accessToken);
+        headers.put("content-type", "application/json;charset=utf-8");
+
+        jsonPostRequest("https://api.themoviedb.org/4/list/" + listID + "/items", body, headers);
+        System.out.println("\n\nYour list has been created!\n\nVisit:\n\n" + "https://www.themoviedb.org/list/" + listID);
     }
 
     /**
@@ -442,31 +470,102 @@ public class PlexManager {
         return id;
     }
 
+    private static void waitForRateLimit(int callsRemaining) {
+        try {
+            if(callsRemaining == 0) {
+                System.out.println("\n\nSleeping 10 seconds (rate limit)...\n\n");
+                sleep(10000);
+            }
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Query a URL and return the JSON response
      *
      * @param url The URL to be queried
      * @return A JSON response from the URL
      */
-    private static String jsonRequest(String url) {
-        String json;
+    private static String jsonGetRequest(String url) {
+        String json = null;
         try {
-            StringBuffer response = new StringBuffer();
-            URL apiURL = new URL(url);
-            HttpURLConnection con = (HttpURLConnection) apiURL.openConnection();
-            con.setRequestMethod("GET");
-            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-            String readLine;
-
-            while((readLine = in.readLine()) != null) {
-                response.append(readLine);
+            Request.Builder builder = new Request.Builder().url(url);
+            Response response = client.newCall(builder.build()).execute();
+            if(response.isSuccessful()) {
+                json = response.body().string();
+                waitForRateLimit(Integer.valueOf(response.header("X-RateLimit-Remaining")));
             }
-            in.close();
-            json = response.toString();
+
+            response.close();
         }
         catch(Exception e) {
-            return null;
+            e.printStackTrace();
         }
         return json;
+    }
+
+    private static String jsonPostRequest(String url, String body, HashMap<String, String> headers) {
+        String json = null;
+        try {
+            Request.Builder builder = new Request.Builder().url(url);
+            RequestBody requestBody = RequestBody.create(
+                    MediaType.parse("application/json"), body
+            );
+            builder.post(requestBody);
+            for(String header : headers.keySet()) {
+                builder.addHeader(header, headers.get(header));
+            }
+
+            Response response = client.newCall(builder.build()).execute();
+            json = response.body().string();
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+        return json;
+    }
+
+    private static String getWriteAccess() {
+        HashMap<String, String> headers = new HashMap<>();
+        headers.put("authorization", "Bearer " + tmdbReadToken);
+        headers.put("content-type", "application/json;charset=utf-8");
+
+        // Get request token
+        String json = jsonPostRequest("https://api.themoviedb.org/4/auth/request_token", "{}", headers);
+
+        // Ask the user to authenticate the request token
+        String requestToken = getJsonValue(json, "request_token", false);
+        String url = "https://www.themoviedb.org/auth/access?request_token=" + requestToken;
+        System.out.println("Please visit:\n\n" + url + "\n\nTo approve the application, this allows it to create a TMDB list containing your missing movies.\n\nType \"ok\" when ready:\n\n");
+        String answer = "";
+        Scanner scan = new Scanner(System.in);
+
+        while(!answer.equalsIgnoreCase("ok")) {
+            answer = scan.nextLine();
+        }
+
+        // Use the authenticated request token to obtain an access token for write permission
+        String body = "{" + "\"request_token\"" + ":" + "\"" + requestToken + "\"}";
+        json = jsonPostRequest("https://api.themoviedb.org/4/auth/access_token", body, headers);
+        return getJsonValue(json, "access_token", false);
+    }
+
+    private static String getJsonValue(String json, String key, boolean integer) {
+        String result = null;
+        try {
+            JSONObject jsonObject = new JSONObject(json);
+            if(integer) {
+                result = String.valueOf(jsonObject.getInt(key));
+            }
+            else {
+                result = jsonObject.getString(key);
+            }
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 }

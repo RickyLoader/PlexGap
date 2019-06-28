@@ -40,10 +40,6 @@ public class Movie {
         return collection != null;
     }
 
-    public void getSummary() {
-        System.out.println("title: " + title + "\n" + "id: " + TMDBId + "\n" + "collection: " + collection + " rating: " + rating);
-    }
-
     public String getIMDBId() {
         return IMDBId;
     }

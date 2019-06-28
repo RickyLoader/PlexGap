@@ -104,7 +104,11 @@ Type "ok" when ready:
 
 This is due to TMDB requiring multi part authentication in allowing applications to write to your profile.
 
-First it passes your provided `read access token` to obtain a `request token`. You must then follow the provided link to approve this request, allowing the application to use the `approved request token` to obtain an `access token`, finally granting temporary permission to write data to your profile.
+First the application passes your provided `read access token` to obtain a `request token`. 
+
+You must then follow the provided link to approve this request token.
+
+This allows the application to use the now `approved request token` to obtain an `access token`, finally granting temporary permission to write data to your profile.
 
 Once you have approved this request and typed `ok`, you will be asked to provide a name for your list, and then be directed to the newly created list:
 

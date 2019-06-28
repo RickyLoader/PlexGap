@@ -473,8 +473,8 @@ public class PlexManager {
     private static void waitForRateLimit(int callsRemaining) {
         try {
             if(callsRemaining == 0) {
-                System.out.println("\n\nSleeping 10 seconds (rate limit)...\n\n");
-                sleep(10000);
+                System.out.println("\n\nSleeping 3 seconds (rate limit)...\n\n");
+                sleep(3000);
             }
         }
         catch(Exception e) {

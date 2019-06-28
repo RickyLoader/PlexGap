@@ -17,9 +17,9 @@ The token is located in the address bar as `X-Plex-Token=YOURTOKENHERE`, only th
 
 The IP address that your Plex server runs on including port. E.g: `192.168.1.138:32400`
 
-### TMDB API Key
+### TMDB API Key & TMDB Read Access Token
 
-PlexGap utelises the TMDB API to find out whether a movie is part of a series, and to find the other members of these series.
+PlexGap utelises the TMDB API to find out whether a movie is part of a series, and to find the other members of these series. The read acccess token allows the application to create a list on your TMDB profile containing the movies that were found.
 
 To obtain an API key for TMDB, create a free account and verify your email.
 
@@ -29,7 +29,7 @@ Click to generate a new API key as a developer and accept the terms and conditio
 
 You will now be asked to input information about the application that will use this API key, anything can be entered here.
 
-Once done, your API key will be located under `API Key (v3 auth)`
+Once done, your API key will be located under `API Key (v3 auth)` and your read access token under `API Read Access Token (v4 auth)`.
 
 ## Running the application
 Make sure credentials.json and the jar file are in the same directory and type `java -jar PlexGap.jar` in CMD.
@@ -88,23 +88,22 @@ This will provide a list of items which belong to the collection.
 
 As items belonging to the same collection are found, they are marked as seen in this list.
 
-This process does not take too long as only one API call is made per collection.
+This process does not take too long as only one API call is made per collection, however the application must sleep for 10 seconds every 40 calls (40 new collections checked) to respect the rate limit.
 
-Upon checking all movies, a breakdown of missing items is provided, seperated by collection:
+Upon checking all movies, you will be prompted with a link e.g:
 
 ```
-X-Men Collection:
-Dark Phoenix 
+Please visit:
 
-John Wick Collection:
-John Wick: Chapter 3 – Parabellum
+https://www.themoviedb.org/auth/access?request_token={YOUR_REQUEST_TOKEN_HERE}
 
-Jurassic Park Collection:
-The Lost World: Jurassic Park 
-Jurassic Park III 
-Jurassic Park 
+To approve the application, this allows it to create a TMDB list containing your missing movies.
+
+Type "ok" when ready:
 ```
 
+TMDB has a multi part authentication system to allow applications to write to your profile.
 
+First it passes your provided read access token to obtain a request token. You must then follow the provided link to approve this request, allowing the application to use the approved request token to obtain an access token grantingn temporary permission to write data to your profile.
 
-
+Once you have approved this request and typed `ok`, 

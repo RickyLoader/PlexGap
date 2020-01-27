@@ -12,6 +12,10 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
+import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.ParseException;
@@ -26,18 +30,109 @@ public class PlexManager {
     private static String plexToken = "?X-Plex-Token=";
     private static String tmdbKey = null;
     private static String tmdbReadToken = null;
+    private static String jsonFile = null;
     private static final OkHttpClient client = new OkHttpClient();
 
     public static void main(String[] args) {
         if(getCredentials()) {
             ArrayList<Movie> movies = promptSource();
+            if(movies.isEmpty()) {
+                System.out.println("No movies were found, please check that " + jsonFile + " exists and is readable, or that your credentials are valid.");
+                return;
+            }
+            System.out.println("\n\n" + movies.size() + " movies found!\n\n");
             Scanner scan = new Scanner(System.in);
-            System.out.println("\n\nWhat would you like to do with your movies?\n\n1. Find missing sequels\n");
+            System.out.println("\n\nWhat would you like to do with your movies?\n\n1. Find missing sequels\n\n2. View movies by size\n\n3. View movies by rating\n");
             switch(scan.nextLine()) {
                 case "1":
                     findMissingSequels(movies);
                     break;
+                case "2":
+                    orderMoviesBySize(movies);
+                    break;
+                case "3":
+                    orderMoviesByRating(movies);
+                    break;
+                case "4":
+                    trainingData(movies);
             }
+        }
+    }
+
+    private static String toTrainingPhrase(String prefix, String title) {
+        String q = "\"";
+        String optional = "{" + q + "text" + q + ":" + q + prefix + q + "," + q + "userDefined" + q + ":" +
+                "false" + "},";
+        String open = "{" + q + "data" + q + ":" + "[";
+        String required = "{" + q + "text" + q + ":" + q + title + q + "," + q + "alias" + q + ":" + q + "movie-name" + q + ","
+                + q + "meta" + q + ":" + q + "@movie-name" + q + "," + q + "userDefined" + q + ":" + "false}],";
+        String close = q + "isTemplate" +
+        q + ":" + "false" + "," + q + "count" + q + ":" + 0 + "," + q + "updated" + q + ":" + 0 + "," + q + "isAuto" + q + ":" +
+                "false},";
+        if(prefix == null){
+            return open + required + close;
+        }
+        return open + optional + required + close;
+    }
+
+    private static void trainingData(ArrayList<Movie> movies) {
+        String result = "";
+        for(int i = 0;i<movies.size(); i++) {
+            Movie movie = movies.get(i);
+            String title = movie.getTitle()
+                    .replace("(","")
+                    .replace(")","");
+            result += toTrainingPhrase(null, title);
+        }
+        result = result.substring(0,result.length()-1);
+        writeToFile("dave.json",result);
+    }
+
+    private static String getIMDBRating(String imdbID) {
+        String rating = null;
+        try {
+            URL destination = new URL("https://www.imdb.com/title/" + imdbID);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(destination.openStream()));
+            String line;
+            while((line = reader.readLine()) != null) {
+                Matcher matcher = Pattern.compile("(?<=\"ratingValue\": \")[0-9]+.[0-9]").matcher(line.trim());
+
+                if(matcher.find()) {
+                    rating = line.trim().substring(matcher.start(), matcher.end());
+                    break;
+                }
+
+            }
+            reader.close();
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        return rating;
+    }
+
+    private static void orderMoviesByRating(ArrayList<Movie> movies) {
+        Collections.sort(movies, new Comparator<Movie>() {
+            @Override
+            public int compare(Movie o1, Movie o2) {
+                return Double.valueOf(o2.getRating()).compareTo(Double.valueOf(o1.getRating()));
+            }
+        });
+        for(Movie movie : movies) {
+            System.out.println(movie.getRatingSummary());
+        }
+    }
+
+    private static void orderMoviesBySize(ArrayList<Movie> movies) {
+        Collections.sort(movies, new Comparator<Movie>() {
+            @Override
+            public int compare(Movie o1, Movie o2) {
+                return o1.getSizeMegabyte() - o2.getSizeMegabyte();
+            }
+        });
+        for(Movie movie : movies) {
+            System.out.println(movie.getSizeSummary());
         }
     }
 
@@ -67,16 +162,18 @@ public class PlexManager {
             String auth = credentials.getString("plex_token");
             String tmdb = credentials.getString("tmdb_api_key");
             String readToken = credentials.getString("tmdb_read_access_token");
+            String json = credentials.getString("json_file");
 
-            if(!location.isEmpty() && !auth.isEmpty() && !tmdb.isEmpty() && !readToken.isEmpty()) {
+            if(!location.isEmpty() && !auth.isEmpty() && !tmdb.isEmpty() && !readToken.isEmpty() && !json.isEmpty()) {
                 authenticated = true;
                 ip = "http://" + location + ip;
                 plexToken = plexToken + auth;
                 tmdbKey = tmdb;
                 tmdbReadToken = readToken.trim();
+                jsonFile = json;
             }
             else {
-                System.out.println("Error in credentials.json, make sure your plex token and ip are entered correctly.");
+                System.out.println("Error in credentials.json, make sure they are entered correctly.");
             }
         }
         catch(Exception e) {
@@ -93,76 +190,39 @@ public class PlexManager {
     private static ArrayList<Movie> promptSource() {
         ArrayList<Movie> movies = new ArrayList<>();
         Scanner scan = new Scanner(System.in);
-        System.out.println("Where would you like to read your Plex library in from?\n1. A JSON file\n2. The Plex API");
+        System.out.println("\n\nWhere would you like to read your Plex library in from?\n\n1. " + jsonFile + "\n2. The Plex API\n");
 
         switch(scan.nextLine()) {
             case "1":
-                movies = readSaved(getFilename(true));
+                movies = readSaved();
                 break;
             case "2":
                 movies = getPlexMovies();
                 break;
         }
-        System.out.println("\n\n" + movies.size() + " movies found!\n\n");
         return movies;
     }
 
     /**
      * Create a list of movies from a previously created JSON file
      *
-     * @param filename The file to be read
      * @return ArrayList of movie objects
      */
-    private static ArrayList<Movie> readSaved(String filename) {
+    private static ArrayList<Movie> readSaved() {
         ArrayList<Movie> movies = new ArrayList<>();
+
         try {
-            String file = new String(Files.readAllBytes(Paths.get(filename)), "utf-8");
+            String file = new String(Files.readAllBytes(Paths.get(jsonFile)), StandardCharsets.UTF_8);
             JSONArray allMovies = new JSONObject(file).getJSONArray("movies");
             for(int i = 0; i < allMovies.length(); i++) {
                 JSONObject movie = allMovies.getJSONObject(i);
-                movies.add(createMovie(movie));
+                movies.add(createMovie(movie, movie.getString("size"), false));
             }
         }
-        catch(Exception e) {
-            e.printStackTrace();
+        catch(IOException i) {
+            System.out.println("\n\n" + jsonFile + " not found, exiting program.\n");
         }
         return movies;
-    }
-
-    /**
-     * Prompt the user for a valid filename
-     *
-     * @return File to be read
-     */
-    private static String getFilename(Boolean reading) {
-        String msg = "Please enter the path (including file extension) to your JSON file:";
-        if(!reading) {
-            msg = "Please enter a full path and filename (including file extension) for the movies to be saved in JSON format:";
-        }
-        String filename = null;
-        Scanner scan = new Scanner(System.in);
-        boolean valid = false;
-        while(!valid || filename == null || filename.isEmpty()) {
-            System.out.println(msg);
-            filename = scan.nextLine();
-            valid = fileExists(filename, reading);
-        }
-        return filename;
-    }
-
-    /**
-     * Verifies the existence and readability of a given file path
-     *
-     * @param filename File to be read
-     * @param reading  True if reading from existing file
-     * @return Boolean representing valid file path
-     */
-    private static boolean fileExists(String filename, Boolean reading) {
-        File file = new File(filename);
-        if(reading) {
-            return file.exists() && file.canRead();
-        }
-        return true;
     }
 
     /**
@@ -171,11 +231,10 @@ public class PlexManager {
      * @return ArrayList of movie objects
      */
     private static ArrayList<Movie> getPlexMovies() {
-        String filename = getFilename(false);
-        writeToFile(filename, "{\"movies\":[");
+        writeToFile(jsonFile, "{\"movies\":[");
         ArrayList<Movie> movies = new ArrayList<>();
 
-        String allMovieEndpoint = ip + "/sections/1/all/" + plexToken;
+        String allMovieEndpoint = ip + "/sections/2/all/" + plexToken;
         try {
 
             // XML file representing basic information on all movies in library
@@ -188,6 +247,8 @@ public class PlexManager {
                 // Get basic information on single movie
                 Node movieContainer = movieContainers.item(i);
                 Element element = (Element) movieContainer;
+                Element sizeInfo = (Element) element.getElementsByTagName("Part").item(0);
+                //String percent = String.format("%.2f",(double) (i + 1) / (double) (movieContainers.getLength() / 100));
                 System.out.println("Getting info for movie " + (i + 1) + "/" + movieContainers.getLength());
 
                 // Query separate endpoint for in depth movie information using its unique ratingKey
@@ -201,17 +262,20 @@ public class PlexManager {
                 String json = getTMDBJSON(xmlMovie.getAttribute("guid"));
 
                 if(json != null) {
-                    Movie movie = createMovie(new JSONObject(json));
+                    Movie movie = createMovie(new JSONObject(json), sizeInfo.getAttribute("size"), true);
                     movies.add(movie);
                     boolean last = i == movieContainers.getLength() - 1;
                     String movieJSON = movie.toJSON();
                     if(!last) {
                         movieJSON += ",";
                     }
-                    writeToFile(filename, movieJSON);
+                    writeToFile(jsonFile, movieJSON);
+                }
+                else {
+                    System.out.println(specificMovieEndpoint);
                 }
             }
-            writeToFile(filename, "]}");
+            writeToFile(jsonFile, "]}");
         }
         catch(Exception e) {
             e.printStackTrace();
@@ -275,7 +339,7 @@ public class PlexManager {
      * @param json TMDB JSON representing a movie
      * @return A movie object created using information in the JSON
      */
-    private static Movie createMovie(JSONObject json) {
+    private static Movie createMovie(JSONObject json, String size, boolean api) {
         Movie result = null;
         String collection = getCollection(json);
 
@@ -284,8 +348,14 @@ public class PlexManager {
             String date = json.getString("release_date");
             String title = json.getString("original_title");
             String TMDBId = String.valueOf(json.getInt("id"));
-            String rating = String.valueOf(json.getDouble("vote_average"));
-            result = new Movie(title, TMDBId, IMDBId, collection, date, rating);
+            String rating;
+            if(api) {
+                rating = getIMDBRating(IMDBId);
+            }
+            else {
+                rating = json.getString("vote_average");
+            }
+            result = new Movie(title, TMDBId, IMDBId, collection, date, rating, Long.valueOf(size));
         }
         catch(JSONException e) {
             e.printStackTrace();
@@ -323,9 +393,8 @@ public class PlexManager {
         // Store collections via their unique id
         HashMap<String, Collection> collections = new HashMap<>();
 
-        // API has a query limit
-        int hits = 0;
         int count = 1;
+
         for(Movie movie : movies) {
             if(movie.isCollection()) {
                 System.out.println("Checking " + movie.getTitle() + " (" + (count) + "/" + movies.size() + ")");
@@ -343,10 +412,13 @@ public class PlexManager {
 
                     // Create an object to hold the collection information and store it in the map
                     String collectionJson = jsonGetRequest(url);
+                    if(collectionJson==null){
+                        System.out.println(url);
+                        continue;
+                    }
                     Collection collection = getCollectionInfo(id, collectionJson);
                     System.out.println("Collection has been found - " + movie.getTitle() + " belongs to the " + collection.getTitle() + "\n\n");
                     collections.put(collection.getId(), collection);
-                    hits++;
                 }
 
                 // Else mark the current movie as present in the library
@@ -495,7 +567,9 @@ public class PlexManager {
             Response response = client.newCall(builder.build()).execute();
             if(response.isSuccessful()) {
                 json = response.body().string();
-                waitForRateLimit(Integer.valueOf(response.header("X-RateLimit-Remaining")));
+
+                // They removed rate limiting
+                //waitForRateLimit(Integer.parseInt(response.header("X-RateLimit-Remaining")));
             }
 
             response.close();

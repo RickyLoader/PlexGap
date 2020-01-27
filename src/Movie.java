@@ -5,16 +5,17 @@ public class Movie {
     private final String releaseDate;
     private final String collection;
     private final String rating;
+    private long size;
 
-    public Movie(String title, String TMDBId, String IMDBId, String collection, String releaseDate, String rating) {
+    public Movie(String title, String TMDBId, String IMDBId, String collection, String releaseDate, String rating, long size) {
         this.title = title;
         this.TMDBId = TMDBId;
         this.IMDBId = IMDBId;
         this.collection = collection;
         this.releaseDate = releaseDate;
         this.rating = rating;
+        this.size = size;
     }
-
 
     public String getRating() {
         return rating;
@@ -55,6 +56,8 @@ public class Movie {
                 .append("{")
                 .append(q + "belongs_to_collection" + q + ":")
                 .append(series + ",")
+                .append(q + "size" + q + ":")
+                .append(q + size + q + ",")
                 .append(q + "id" + q + ":")
                 .append(q + TMDBId + q + ",")
                 .append(q + "imdb_id" + q + ":")
@@ -67,5 +70,17 @@ public class Movie {
                 .append(q + rating + q)
                 .append("}");
         return builder.toString();
+    }
+
+    public int getSizeMegabyte() {
+        return Math.toIntExact(size / 1000);
+    }
+
+    public String getSizeSummary() {
+        return title + " --- " + String.format("%,d MB", getSizeMegabyte());
+    }
+
+    public String getRatingSummary() {
+        return rating + " --- " + title;
     }
 }

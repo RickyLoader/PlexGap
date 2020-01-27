@@ -97,7 +97,9 @@ Please visit:
 
 https://www.themoviedb.org/auth/access?request_token={YOUR_REQUEST_TOKEN_HERE}
 
-To approve the application, this allows it to create a TMDB list containing your missing movies.
+To approve the application.
+
+This allows it to create a TMDB list containing your missing movies.
 
 Type "ok" when ready:
 ```
@@ -119,3 +121,6 @@ Visit:
 
 https://www.themoviedb.org/list/{NEW_LIST_ID}
 ```
+## Note
+
+TMDB collections are curated but can be quite broad - (There is a singular James Bond collection, not split by actor)

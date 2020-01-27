@@ -58,7 +58,7 @@ public class Movie {
                 .append(series + ",")
                 .append(q + "size" + q + ":")
                 .append(q + size + q + ",")
-                .append(q + "id" + q + ":")
+                .append(q + "tmdb_id" + q + ":")
                 .append(q + TMDBId + q + ",")
                 .append(q + "imdb_id" + q + ":")
                 .append(q + IMDBId + q + ",")

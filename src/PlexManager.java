@@ -40,9 +40,9 @@ public class PlexManager {
                 System.out.println("No movies were found, please check that " + jsonFile + " exists and is readable, or that your credentials are valid.");
                 return;
             }
-            System.out.println("\n\n" + movies.size() + " movies found!\n\n");
+            System.out.println(movies.size() + " movies found!\n");
             Scanner scan = new Scanner(System.in);
-            System.out.println("\n\nWhat would you like to do with your movies?\n\n1. Find missing sequels\n\n2. View movies by size\n\n3. View movies by rating\n");
+            System.out.println("What would you like to do with your movies?\n\n1. Find missing sequels\n\n2. View movies by size\n\n3. View movies by rating\n");
             switch(scan.nextLine()) {
                 case "1":
                     findMissingSequels(movies);
@@ -67,9 +67,9 @@ public class PlexManager {
         String required = "{" + q + "text" + q + ":" + q + title + q + "," + q + "alias" + q + ":" + q + "movie-name" + q + ","
                 + q + "meta" + q + ":" + q + "@movie-name" + q + "," + q + "userDefined" + q + ":" + "false}],";
         String close = q + "isTemplate" +
-        q + ":" + "false" + "," + q + "count" + q + ":" + 0 + "," + q + "updated" + q + ":" + 0 + "," + q + "isAuto" + q + ":" +
+                q + ":" + "false" + "," + q + "count" + q + ":" + 0 + "," + q + "updated" + q + ":" + 0 + "," + q + "isAuto" + q + ":" +
                 "false},";
-        if(prefix == null){
+        if(prefix == null) {
             return open + required + close;
         }
         return open + optional + required + close;
@@ -77,15 +77,15 @@ public class PlexManager {
 
     private static void trainingData(ArrayList<Movie> movies) {
         String result = "";
-        for(int i = 0;i<movies.size(); i++) {
+        for(int i = 0; i < movies.size(); i++) {
             Movie movie = movies.get(i);
             String title = movie.getTitle()
-                    .replace("(","")
-                    .replace(")","");
+                    .replace("(", "")
+                    .replace(")", "");
             result += toTrainingPhrase(null, title);
         }
-        result = result.substring(0,result.length()-1);
-        writeToFile("dave.json",result);
+        result = result.substring(0, result.length() - 1);
+        writeToFile("dave.json", result);
     }
 
     private static String getIMDBRating(String imdbID) {
@@ -190,7 +190,7 @@ public class PlexManager {
     private static ArrayList<Movie> promptSource() {
         ArrayList<Movie> movies = new ArrayList<>();
         Scanner scan = new Scanner(System.in);
-        System.out.println("\n\nWhere would you like to read your Plex library in from?\n\n1. " + jsonFile + "\n2. The Plex API\n");
+        System.out.println("Where would you like to read your Plex library in from?\n\n1. " + jsonFile + "\n2. The Plex API\n");
 
         switch(scan.nextLine()) {
             case "1":
@@ -209,20 +209,76 @@ public class PlexManager {
      * @return ArrayList of movie objects
      */
     private static ArrayList<Movie> readSaved() {
+        HashMap<String, Movie> saved = new HashMap<>();
         ArrayList<Movie> movies = new ArrayList<>();
-
         try {
             String file = new String(Files.readAllBytes(Paths.get(jsonFile)), StandardCharsets.UTF_8);
             JSONArray allMovies = new JSONObject(file).getJSONArray("movies");
             for(int i = 0; i < allMovies.length(); i++) {
-                JSONObject movie = allMovies.getJSONObject(i);
-                movies.add(createMovie(movie, movie.getString("size"), false));
+                JSONObject jsonMovie = allMovies.getJSONObject(i);
+                Movie movie = createMovie(jsonMovie, jsonMovie.getString("size"), false);
+
+                // Plex only supplies one id, it could be either so need both to check
+                saved.put(movie.getIMDBId(), movie);
+                saved.put(movie.getTMDBId(), movie);
+                movies.add(movie);
+            }
+
+            System.out.println("Checking Plex for new movies...\n");
+
+            NodeList onPlex = getLibraryOverview();
+            for(int i = 0; i < onPlex.getLength(); i++) {
+                Node movieContainer = onPlex.item(i);
+                String id = getMovieID(((Element) movieContainer).getAttribute("guid"));
+                if(!saved.containsKey(id)) {
+                    Movie movie = getMovie(movieContainer);
+                    if(movie != null) {
+                        System.out.println("\""+movie.getTitle() + "\" was found on Plex and not in " + jsonFile + "\n");
+                        movies.add(movie);
+                    }
+                }
             }
         }
         catch(IOException i) {
             System.out.println("\n\n" + jsonFile + " not found, exiting program.\n");
         }
         return movies;
+    }
+
+    private static NodeList getLibraryOverview() {
+        NodeList movies = null;
+        String allMovieEndpoint = ip + "/sections/2/all/" + plexToken;
+        try {
+            // XML file representing basic information on all movies in library
+            Element generalRoot = getXML(allMovieEndpoint);
+            // All XML movie children
+            movies = generalRoot.getElementsByTagName("Video");
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+        return movies;
+    }
+
+    private static Movie getMovie(Node n) {
+        Movie movie = null;
+        // Get basic information on movie
+        Element element = (Element) n;
+        Element sizeInfo = (Element) element.getElementsByTagName("Part").item(0);
+
+        // Query separate endpoint for in depth movie information using its unique ratingKey
+        String specificMovieEndpoint = ip + "/metadata/" + element.getAttribute("ratingKey") + "/" + plexToken;
+        Element specificRoot = getXML(specificMovieEndpoint);
+
+        // In depth movie information
+        Element xmlMovie = (Element) specificRoot.getElementsByTagName("Video").item(0);
+
+        // Get series information JSON from the TMDB API using the guid, e.g: "com.plexapp.agents.imdb://tt0309593?lang=en"
+        String json = getTMDBJSON(xmlMovie.getAttribute("guid"));
+        if(json != null) {
+            movie = createMovie(new JSONObject(json), sizeInfo.getAttribute("size"), true);
+        }
+        return movie;
     }
 
     /**
@@ -233,68 +289,36 @@ public class PlexManager {
     private static ArrayList<Movie> getPlexMovies() {
         writeToFile(jsonFile, "{\"movies\":[");
         ArrayList<Movie> movies = new ArrayList<>();
+        NodeList movieContainers = getLibraryOverview();
+        for(int i = 0; i < movieContainers.getLength(); i++) {
+            System.out.println("Getting info for movie " + (i + 1) + "/" + movieContainers.getLength());
+            Movie movie = getMovie(movieContainers.item(i));
 
-        String allMovieEndpoint = ip + "/sections/2/all/" + plexToken;
-        try {
-
-            // XML file representing basic information on all movies in library
-            Element generalRoot = getXML(allMovieEndpoint);
-
-            // All XML movie children
-            NodeList movieContainers = generalRoot.getElementsByTagName("Video");
-            for(int i = 0; i < movieContainers.getLength(); i++) {
-
-                // Get basic information on single movie
-                Node movieContainer = movieContainers.item(i);
-                Element element = (Element) movieContainer;
-                Element sizeInfo = (Element) element.getElementsByTagName("Part").item(0);
-                //String percent = String.format("%.2f",(double) (i + 1) / (double) (movieContainers.getLength() / 100));
-                System.out.println("Getting info for movie " + (i + 1) + "/" + movieContainers.getLength());
-
-                // Query separate endpoint for in depth movie information using its unique ratingKey
-                String specificMovieEndpoint = ip + "/metadata/" + element.getAttribute("ratingKey") + "/" + plexToken;
-                Element specificRoot = getXML(specificMovieEndpoint);
-
-                // In depth movie information
-                Element xmlMovie = (Element) specificRoot.getElementsByTagName("Video").item(0);
-
-                // Get series information JSON from the TMDB API using the guid, e.g: "com.plexapp.agents.imdb://tt0309593?lang=en"
-                String json = getTMDBJSON(xmlMovie.getAttribute("guid"));
-
-                if(json != null) {
-                    Movie movie = createMovie(new JSONObject(json), sizeInfo.getAttribute("size"), true);
-                    movies.add(movie);
-                    boolean last = i == movieContainers.getLength() - 1;
-                    String movieJSON = movie.toJSON();
-                    if(!last) {
-                        movieJSON += ",";
-                    }
-                    writeToFile(jsonFile, movieJSON);
+            if(movie != null) {
+                movies.add(movie);
+                boolean last = i == movieContainers.getLength() - 1;
+                String movieJSON = movie.toJSON();
+                if(!last) {
+                    movieJSON += ",";
                 }
-                else {
-                    System.out.println(specificMovieEndpoint);
-                }
+                writeToFile(jsonFile, movieJSON);
             }
-            writeToFile(jsonFile, "]}");
         }
-        catch(Exception e) {
-            e.printStackTrace();
-        }
+        writeToFile(jsonFile, "]}");
+
         return movies;
     }
 
     /**
-     * Query the TMDB API for series information given the guid, e.g: "com.plexapp.agents.imdb://tt0309593?lang=en".
-     * Extract the unique id from the guid to query the TMDB API
+     * Extract the unique id from the guid e.g: "com.plexapp.agents.imdb://tt0309593?lang=en" = tt0309593
+     * Either points to TMDB or IMDB, TMDB supports either, Plex supplies only one
      *
-     * @param guid The rating agent used by Plex to pull the rating for the movie. Either points to TMDB or IMDB
-     * @return JSON summary of the movie
+     * @param guid The rating agent used by Plex to pull the rating for the movie
+     * @return id The id of the movie
      */
-    private static String getTMDBJSON(String guid) {
-
+    private static String getMovieID(String guid) {
         String regex;
-        String json = null;
-        String id;
+        String id = null;
 
         // e.g: "com.plexapp.agents.imdb://tt0309593?lang=en"
         if(guid.contains("imdb")) {
@@ -309,6 +333,21 @@ public class PlexManager {
 
         if(matcher.find()) {
             id = guid.substring(matcher.start(), matcher.end());
+        }
+        return id;
+    }
+
+    /**
+     * Query the TMDB API for series information given the guid, e.g: "com.plexapp.agents.imdb://tt0309593?lang=en".
+     * Extract the unique id from the guid to query the TMDB API
+     *
+     * @param guid The rating agent used by Plex to pull the rating for the movie. Either points to TMDB or IMDB
+     * @return JSON summary of the movie
+     */
+    private static String getTMDBJSON(String guid) {
+        String json = null;
+        String id = getMovieID(guid);
+        if(id != null) {
             String url = "https://api.themoviedb.org/3/movie/" + id + "?api_key=" + tmdbKey + "&language=en-US";
             json = jsonGetRequest(url);
         }
@@ -347,7 +386,7 @@ public class PlexManager {
             String IMDBId = json.getString("imdb_id");
             String date = json.getString("release_date");
             String title = json.getString("original_title");
-            String TMDBId = String.valueOf(json.getInt("id"));
+            String TMDBId = String.valueOf(json.getInt("tmdb_id"));
             String rating;
             if(api) {
                 rating = getIMDBRating(IMDBId);
@@ -355,7 +394,7 @@ public class PlexManager {
             else {
                 rating = json.getString("vote_average");
             }
-            result = new Movie(title, TMDBId, IMDBId, collection, date, rating, Long.valueOf(size));
+            result = new Movie(title, TMDBId, IMDBId, collection, date, rating, Long.parseLong(size));
         }
         catch(JSONException e) {
             e.printStackTrace();
@@ -412,7 +451,7 @@ public class PlexManager {
 
                     // Create an object to hold the collection information and store it in the map
                     String collectionJson = jsonGetRequest(url);
-                    if(collectionJson==null){
+                    if(collectionJson == null) {
                         System.out.println(url);
                         continue;
                     }
@@ -568,8 +607,8 @@ public class PlexManager {
             if(response.isSuccessful()) {
                 json = response.body().string();
 
-                // They removed rate limiting
-                //waitForRateLimit(Integer.parseInt(response.header("X-RateLimit-Remaining")));
+                /* They removed rate limiting
+                waitForRateLimit(Integer.parseInt(response.header("X-RateLimit-Remaining")));*/
             }
 
             response.close();

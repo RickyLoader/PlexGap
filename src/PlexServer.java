@@ -8,13 +8,15 @@ import java.util.regex.Pattern;
 public class PlexServer {
     private String ip;
     private String token;
+    private String library;
     TheMovieDatabase TMDB;
     private HashMap<String, String> headers;
 
-    public PlexServer(String ip, String token, TheMovieDatabase TMDB) {
+    public PlexServer(String ip, String token, String library, TheMovieDatabase TMDB) {
         this.ip = ip;
         this.token = token;
         this.TMDB = TMDB;
+        this.library = library;
 
         // Force Plex to use JSON not default XML
         headers = new HashMap<>();
@@ -22,7 +24,7 @@ public class PlexServer {
     }
 
     public JSONArray getLibraryOverview() {
-        String allMovieEndpoint = ip + "/sections/2/all/" + token;
+        String allMovieEndpoint = ip + "/sections/" + library + "/all/" + token;
         String library = new NetworkRequest(null, headers).send(allMovieEndpoint);
         return new JSONObject(library).getJSONObject("MediaContainer").getJSONArray("Metadata");
     }

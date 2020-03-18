@@ -11,6 +11,7 @@ public class Credentials {
     private String tmdbKey = null;
     private String tmdbReadToken = null;
     private String jsonFile = null;
+    private String libraryID = null;
     private boolean authenticated;
 
     public Credentials() {
@@ -27,8 +28,9 @@ public class Credentials {
             tmdbKey = credentials.getString("tmdb_api_key");
             tmdbReadToken = credentials.getString("tmdb_read_access_token").trim();
             jsonFile = credentials.getString("json_file");
+            libraryID = credentials.getString("library_id");
 
-            if(!ip.isEmpty() && !plexToken.isEmpty() && !tmdbKey.isEmpty() && !tmdbReadToken.isEmpty() && !jsonFile.isEmpty()) {
+            if(!ip.isEmpty() && !plexToken.isEmpty() && !tmdbKey.isEmpty() && !tmdbReadToken.isEmpty() && !jsonFile.isEmpty() && !libraryID.isEmpty()) {
                 authenticated = true;
                 ip = "http://" + ip + "/library";
                 plexToken = "?X-Plex-Token=" + plexToken;
@@ -54,6 +56,10 @@ public class Credentials {
 
     public String getPlexToken() {
         return plexToken;
+    }
+
+    public String getLibraryID() {
+        return libraryID;
     }
 
     public String getTmdbKey() {

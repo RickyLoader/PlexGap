@@ -26,7 +26,7 @@ public class PlexManager {
         credentials = new Credentials();
         if(credentials.isAuthenticated()) {
             TMDB = new TheMovieDatabase(credentials.getTmdbKey(), credentials.getTmdbReadToken());
-            plexServer = new PlexServer(credentials.getPlexIp(), credentials.getPlexToken(), TMDB);
+            plexServer = new PlexServer(credentials.getPlexIp(), credentials.getPlexToken(), credentials.getLibraryID(), TMDB);
             ArrayList<Movie> movies = promptMovieSource();
 
             if(movies == null || movies.isEmpty()) {

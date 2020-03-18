@@ -11,10 +11,9 @@ public class Credentials {
     private String tmdbKey = null;
     private String tmdbReadToken = null;
     private String jsonFile = null;
-    private boolean fetchRating;
     private boolean authenticated;
 
-    public Credentials(){
+    public Credentials() {
         authenticated = readCredentials();
     }
 
@@ -28,7 +27,6 @@ public class Credentials {
             tmdbKey = credentials.getString("tmdb_api_key");
             tmdbReadToken = credentials.getString("tmdb_read_access_token").trim();
             jsonFile = credentials.getString("json_file");
-            fetchRating = credentials.getBoolean("fetch_rating");
 
             if(!ip.isEmpty() && !plexToken.isEmpty() && !tmdbKey.isEmpty() && !tmdbReadToken.isEmpty() && !jsonFile.isEmpty()) {
                 authenticated = true;
@@ -64,9 +62,5 @@ public class Credentials {
 
     public String getTmdbReadToken() {
         return tmdbReadToken;
-    }
-
-    public boolean fetchRating() {
-        return fetchRating;
     }
 }

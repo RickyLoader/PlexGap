@@ -1,3 +1,5 @@
+import org.json.JSONObject;
+
 import java.util.HashMap;
 
 public class Collection {
@@ -42,5 +44,30 @@ public class Collection {
             }
         }
         return summary.toString();
+    }
+
+    /**
+     * Attempt to obtain the unique id of the collection a movie belongs to
+     *
+     * @param json JSON response from TMDB API
+     * @return null or unique id of movie collection
+     */
+    public static String getCollection(JSONObject json) {
+
+        if(json == null) {
+            return null;
+        }
+
+        String id = null;
+        try {
+            if(json.has("belongs_to_collection") && !json.isNull("belongs_to_collection")) {
+                JSONObject collection = json.getJSONObject("belongs_to_collection");
+                id = String.valueOf(collection.getInt("id"));
+            }
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+        return id;
     }
 }

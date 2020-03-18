@@ -7,11 +7,13 @@ For example: You have Iron Man 1 and Iron Man 3, this will inform you that Iron 
 
 To get started, edit credentials.json and provide the required credentials.
 
-### Plex token
+### Plex token & Library ID
 
 A temporary Plex token can be found by right clicking a movie in your library, selecting `Get Info` from the drop down, and then clicking `View XML`.
 
 The token is located in the address bar as `X-Plex-Token=YOUR_TOKEN_HERE`, only `YOUR_TOKEN_HERE` is required.
+
+The library id is found as `librarysectionID="x"`, only `x` is required. 
 
 ### Plex IP
 
@@ -19,7 +21,7 @@ The IP address that your Plex server runs on including port. E.g: `192.168.1.138
 
 ### TMDB API Key & TMDB Read Access Token
 
-PlexGap utelises the TMDB API to find out whether a movie is part of a series, and to find the other members of these series. The read acccess token allows the application to create a list on your TMDB profile containing the movies that were found.
+PlexGap utelises the TMDB API to find out whether a movie is part of a series, and to find the other members of these series. The read acccess token allows the application temporary write access to create a list on your TMDB profile containing the movies that were found.
 
 To obtain an API key for TMDB, create a free account and verify your email.
 
@@ -40,7 +42,7 @@ When running the application you will be asked to select an option:
 ```
 Where would you like to read your Plex library in from?
 
-1. A JSON file 
+1. [json_file].json 
 
 2. The Plex API
 ```
@@ -50,24 +52,17 @@ Where would you like to read your Plex library in from?
 As obtaining the information for all movies in your plex library is a time consuming process, the application will save the relevant 
 data in a json file as it is found.
 
-If you have run the application before and haven't added anything new to your library that you'd like to include, you can opt to provide the path (including extension) to this json file
-to prevent having to go through the process again.
+If you have run the application before, you can select this option to prevent having to go through the process again. New movies on plex that are not in the json file are appended to it.
 
 ### Plex API
 
-You will be prompted to provide a path for where the application should save the data that is found in json format.
-
-E.g: `C:Users\Me\Desktop\movies.json` or `missing.json` etc.
-
-This file will be created, and can be used to quickly run the application again without going through the below process.
-
 The application will first query your plex server for the contents of your library.
 
-Each item has a unique `ratingKey` which the application must then pass back to plex to obtain the item's metadata.
+Each item in your library has a unique `guid`, which is the id used by either IMDB or TMDB to identify a movie.
 
-This metadata includes the `guid` of the item, which is the unique id used by either IMDB or TMDB to identify a movie.
+This `guid` is passed to the TMDB API to find the collection id of the movie (if it belongs to a collection).
 
-The `guid` is then passed to the TMDB API to find the collection id of the movie (if it belongs to a collection).
+This process can take a few minutes depending on the size of your library, so the results are stored in a json file named what has been specified in credentials.json. This can be used to quickly run the application again.
 
 ## Using the data
 
@@ -88,7 +83,7 @@ This will provide a list of items which belong to the collection.
 
 As items belonging to the same collection are found, they are marked as seen in this list.
 
-This process does not take long as only one API call is made per collection, however the application must sleep on occasion to respect the rate limit.
+This process does not take long as only one API call is made per collection.
 
 Upon checking all movies, you will be prompted with a link to follow:
 
@@ -123,4 +118,4 @@ https://www.themoviedb.org/list/{NEW_LIST_ID}
 ```
 ## Note
 
-TMDB collections are curated but can be quite broad - (There is a singular James Bond collection, not split by actor)
+TMDB collections are curated but can be quite broad and often lack any granularity - (There is a singular James Bond collection, not split by actor). As this list is created on your profile, you can remove any movies you don't want and import it in to Radarr.

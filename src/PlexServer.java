@@ -1,3 +1,4 @@
+import okhttp3.OkHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -5,27 +6,27 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class PlexServer {
-    private String ip;
-    private String token;
-    private String library;
-    TheMovieDatabase TMDB;
+class PlexServer {
+    private String ip, token, library;
+    private TheMovieDatabase TMDB;
     private HashMap<String, String> headers;
+    private OkHttpClient client;
 
-    public PlexServer(String ip, String token, String library, TheMovieDatabase TMDB) {
+    PlexServer(String ip, String token, String library, TheMovieDatabase TMDB, OkHttpClient client) {
         this.ip = ip;
         this.token = token;
         this.TMDB = TMDB;
         this.library = library;
+        this.client = client;
 
         // Force Plex to use JSON not default XML
         headers = new HashMap<>();
         headers.put("accept", "application/json");
     }
 
-    public JSONArray getLibraryOverview() {
+    JSONArray getLibraryOverview() {
         String allMovieEndpoint = ip + "/sections/" + library + "/all/" + token;
-        String library = new NetworkRequest(null, headers).send(allMovieEndpoint);
+        String library = new NetworkRequest(null, headers, client).send(allMovieEndpoint);
         return new JSONObject(library).getJSONObject("MediaContainer").getJSONArray("Metadata");
     }
 
@@ -64,14 +65,15 @@ public class PlexServer {
      * @param movieDetails General overview of a specific movie given by Plex
      * @return A movie object containing the info
      */
-    public Movie jsonToMovie(JSONObject movieDetails) {
+    Movie jsonToMovie(JSONObject movieDetails) {
         Movie movie = null;
         long movieSize = movieDetails.getJSONArray("Media").getJSONObject(0).getJSONArray("Part").getJSONObject(0).getLong("size");
+        String filename = movieDetails.getString("title");
 
         // Get series information JSON from the TMDB API using the guid, e.g: "com.plexapp.agents.imdb://tt0309593?lang=en"
         String json = TMDB.getMovieInfo(getMovieID(movieDetails.getString("guid")));
         if(json != null) {
-            movie = Movie.createMovie(new JSONObject(json), movieSize, true);
+            movie = Movie.createMovie(new JSONObject(json), movieSize, filename, true);
         }
         return movie;
     }

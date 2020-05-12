@@ -3,18 +3,18 @@ import okhttp3.*;
 import java.io.IOException;
 import java.util.HashMap;
 
-public class NetworkRequest {
+class NetworkRequest {
     private String body;
     private HashMap<String, String> headers;
     private OkHttpClient client;
 
-    public NetworkRequest(String body, HashMap<String, String> headers) {
+    NetworkRequest(String body, HashMap<String, String> headers, OkHttpClient client) {
         this.body = body;
         this.headers = headers;
-        client = new OkHttpClient();
+        this.client = client;
     }
 
-    public String send(String location) {
+    String send(String location) {
         try {
             String json = null;
             Request.Builder builder = new Request.Builder().url(location);
@@ -27,7 +27,7 @@ public class NetworkRequest {
                 builder.post(requestBody);
             }
 
-            if(headers!=null){
+            if(headers != null) {
                 for(String header : headers.keySet()) {
                     builder.addHeader(header, headers.get(header));
                 }

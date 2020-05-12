@@ -1,16 +1,19 @@
+import okhttp3.OkHttpClient;
 import org.json.JSONObject;
 import sun.nio.ch.Net;
 
 import java.util.HashMap;
 import java.util.Scanner;
 
-public class TheMovieDatabase {
+class TheMovieDatabase {
     private String key;
     private String token;
+    private OkHttpClient client;
 
-    public TheMovieDatabase(String key, String token) {
+    TheMovieDatabase(String key, String token, OkHttpClient client) {
         this.key = key;
         this.token = token;
+        this.client = client;
     }
 
     /**
@@ -20,11 +23,11 @@ public class TheMovieDatabase {
      * @param id The rating agent used by Plex to pull the rating for the movie. Either points to TMDB or IMDB
      * @return JSON summary of the movie
      */
-    public String getMovieInfo(String id) {
+    String getMovieInfo(String id) {
         String json = null;
         if(id != null) {
             String url = "https://api.themoviedb.org/3/movie/" + id + "?api_key=" + key + "&language=en-US";
-            json = new NetworkRequest(null, null).send(url);
+            json = new NetworkRequest(null, null, client).send(url);
         }
         return json;
     }
@@ -47,7 +50,7 @@ public class TheMovieDatabase {
             name = scan.nextLine();
         }
         String body = "{" + "\"name\"" + ":" + "\"" + name + "\",\"iso_639_1\":\"en\"}";
-        String json = new NetworkRequest(body, headers).send("https://api.themoviedb.org/4/list");
+        String json = new NetworkRequest(body, headers, client).send("https://api.themoviedb.org/4/list");
         return getJsonValue(json, "id", true);
     }
 
@@ -56,7 +59,7 @@ public class TheMovieDatabase {
      *
      * @param collections List of collections, find incomplete collections to add missing movies to TMDB list
      */
-    public void updateList(HashMap<String, Collection> collections) {
+    void updateList(HashMap<String, Collection> collections) {
 
         StringBuilder json = new StringBuilder("{\"items\":[");
 
@@ -77,7 +80,7 @@ public class TheMovieDatabase {
         headers.put("authorization", "Bearer " + accessToken);
         headers.put("content-type", "application/json;charset=utf-8");
 
-        new NetworkRequest(body, headers).send("https://api.themoviedb.org/4/list/" + listID + "/items");
+        new NetworkRequest(body, headers, client).send("https://api.themoviedb.org/4/list/" + listID + "/items");
         System.out.println("\n\nYour list has been created!\n\nVisit:\n\n" + "https://www.themoviedb.org/list/" + listID);
     }
 
@@ -86,13 +89,13 @@ public class TheMovieDatabase {
      *
      * @return access token for write access
      */
-    public String getWriteAccess() {
+    private String getWriteAccess() {
         HashMap<String, String> headers = new HashMap<>();
         headers.put("authorization", "Bearer " + token);
         headers.put("content-type", "application/json;charset=utf-8");
 
         // Get request token
-        String json = new NetworkRequest("{}", headers).send("https://api.themoviedb.org/4/auth/request_token");
+        String json = new NetworkRequest("{}", headers, client).send("https://api.themoviedb.org/4/auth/request_token");
 
         // Ask the user to authenticate the request token
         String requestToken = getJsonValue(json, "request_token", false);
@@ -107,7 +110,7 @@ public class TheMovieDatabase {
 
         // Use the authenticated request token to obtain an access token for write permission
         String body = "{" + "\"request_token\"" + ":" + "\"" + requestToken + "\"}";
-        json = new NetworkRequest(body, headers).send("https://api.themoviedb.org/4/auth/access_token");
+        json = new NetworkRequest(body, headers, client).send("https://api.themoviedb.org/4/auth/access_token");
         return getJsonValue(json, "access_token", false);
     }
 

@@ -1,21 +1,17 @@
+import okhttp3.OkHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import sun.nio.ch.Net;
-
-import java.io.*;
-import java.net.URL;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class PlexManager {
 
     private static Credentials credentials;
     private static PlexServer plexServer;
     private static TheMovieDatabase TMDB;
+    private static OkHttpClient client;
 
     /**
      * Validate credentials and process movies
@@ -25,8 +21,9 @@ public class PlexManager {
     public static void main(String[] args) {
         credentials = new Credentials();
         if(credentials.isAuthenticated()) {
-            TMDB = new TheMovieDatabase(credentials.getTmdbKey(), credentials.getTmdbReadToken());
-            plexServer = new PlexServer(credentials.getPlexIp(), credentials.getPlexToken(), credentials.getLibraryID(), TMDB);
+            client = new OkHttpClient();
+            TMDB = new TheMovieDatabase(credentials.getTmdbKey(), credentials.getTmdbReadToken(), client);
+            plexServer = new PlexServer(credentials.getPlexIp(), credentials.getPlexToken(), credentials.getLibraryID(), TMDB, client);
             ArrayList<Movie> movies = promptMovieSource();
 
             if(movies == null || movies.isEmpty()) {
@@ -69,7 +66,7 @@ public class PlexManager {
     private static void processMovies(ArrayList<Movie> movies) {
         System.out.println(movies.size() + " movies found!\n");
         Scanner scan = new Scanner(System.in);
-        System.out.println("What would you like to do with your movies?\n\n1. Find missing sequels\n\n2. View movies by size\n\n3. View movies by rating\n");
+        System.out.println("What would you like to do with your movies?\n\n1. Find missing sequels\n\n2. View movies by size\n\n3. View movies by rating\n\n5. Find misnamed movies\n\n");
         switch(scan.nextLine()) {
             case "1":
                 findMissingSequels(movies);
@@ -80,6 +77,19 @@ public class PlexManager {
             case "3":
                 orderMoviesByRating(movies);
                 break;
+            case "4":
+                viewCollections(movies);
+                break;
+            case "5":
+                findMisnamedMovies(movies);
+        }
+    }
+
+    private static void findMisnamedMovies(ArrayList<Movie> movies) {
+        for(Movie movie : movies) {
+            if(!movie.getTitle().equals(movie.getFilename())){
+                System.out.println(movie.getFilename() + " | "+movie.getTitle());
+            }
         }
     }
 
@@ -100,7 +110,7 @@ public class PlexManager {
         JSONArray allMovies = new JSONObject(file).getJSONArray("movies");
         for(int i = 0; i < allMovies.length(); i++) {
             JSONObject jsonMovie = allMovies.getJSONObject(i);
-            Movie movie = Movie.createMovie(jsonMovie, jsonMovie.getLong("size"), false);
+            Movie movie = Movie.createMovie(jsonMovie, jsonMovie.getLong("size"), jsonMovie.getString("filename"), false);
 
             // Plex only supplies one id, it could be either so need both to check
             saved.put(movie.getIMDBId(), movie);
@@ -187,7 +197,7 @@ public class PlexManager {
                     String url = "https://api.themoviedb.org/3/collection/" + id + "?api_key=" + credentials.getTmdbKey() + "&language=en-US";
 
                     // Create an object to hold the collection information and store it in the map
-                    String collectionJson = new NetworkRequest(null, null).send(url);
+                    String collectionJson = new NetworkRequest(null, null, client).send(url);
 
                     if(collectionJson == null) {
                         System.out.println(url);
@@ -204,6 +214,16 @@ public class PlexManager {
             count += 1;
         }
         TMDB.updateList(collections);
+    }
+
+    private static void viewCollections(ArrayList<Movie> movies) {
+        HashSet<String> collections = new HashSet<>();
+        for(Movie movie : movies) {
+            if(movie.isCollection() && !collections.contains(movie.getCollection())) {
+                System.out.println(movie.getTitle() + " collection");
+            }
+            collections.add(movie.getCollection());
+        }
     }
 
     /**

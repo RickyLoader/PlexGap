@@ -2,15 +2,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class Movie {
-    private final String title;
-    private final String TMDBId;
-    private final String IMDBId;
-    private final String releaseDate;
-    private final String collection;
-    private final String rating;
+    private final String title, TMDBId, IMDBId, releaseDate, collection, rating, filename;
     private long size;
 
-    public Movie(String title, String TMDBId, String IMDBId, String collection, String releaseDate, String rating, long size) {
+    private Movie(String title, String TMDBId, String IMDBId, String collection, String releaseDate, String rating, String filename, long size) {
         this.title = title;
         this.TMDBId = TMDBId;
         this.IMDBId = IMDBId;
@@ -18,9 +13,14 @@ public class Movie {
         this.releaseDate = releaseDate;
         this.rating = rating;
         this.size = size;
+        this.filename = filename;
     }
 
-    public String getRating() {
+    String getFilename() {
+        return filename;
+    }
+
+    String getRating() {
         return rating;
     }
 
@@ -28,27 +28,27 @@ public class Movie {
         return releaseDate;
     }
 
-    public String getTMDBId() {
+    String getTMDBId() {
         return TMDBId;
     }
 
-    public String getCollection() {
+    String getCollection() {
         return collection;
     }
 
-    public String getTitle() {
+    String getTitle() {
         return title;
     }
 
-    public boolean isCollection() {
+    boolean isCollection() {
         return collection != null;
     }
 
-    public String getIMDBId() {
+    String getIMDBId() {
         return IMDBId;
     }
 
-    public String toJSON() {
+    String toJSON() {
         StringBuilder builder = new StringBuilder();
         String q = "\"";
         String series = collection;
@@ -67,6 +67,8 @@ public class Movie {
                 .append(q + IMDBId + q + ",")
                 .append(q + "title" + q + ":")
                 .append(q + title + q + ",")
+                .append(q + "filename" + q + ":")
+                .append(q + filename + q + ",")
                 .append(q + "release_date" + q + ":")
                 .append(q + releaseDate + q + ",")
                 .append(q + "rating" + q + ":")
@@ -75,15 +77,15 @@ public class Movie {
         return builder.toString();
     }
 
-    public int getSizeMegabyte() {
+    int getSizeMegabyte() {
         return Math.toIntExact(size / 1000);
     }
 
-    public String getSizeSummary() {
+    String getSizeSummary() {
         return title + " --- " + String.format("%,d MB", getSizeMegabyte());
     }
 
-    public String getRatingSummary() {
+    String getRatingSummary() {
         return rating + " --- " + title;
     }
 
@@ -94,10 +96,9 @@ public class Movie {
      * @param json JSON representing a movie
      * @param size Size of movie given by Plex
      * @param api  If JSON comes from TMDB or json file
-     *
      * @return A movie object created using information in the JSON
      */
-    public static Movie createMovie(JSONObject json, long size, boolean api) {
+    static Movie createMovie(JSONObject json, long size, String filename, boolean api) {
         Movie result = null;
         String collection = Collection.getCollection(json);
 
@@ -119,7 +120,7 @@ public class Movie {
                 rating = json.getString("rating");
                 title = json.getString("title");
             }
-            result = new Movie(title, TMDBId, IMDBId, collection, date, rating, size);
+            result = new Movie(title, TMDBId, IMDBId, collection, date, rating, filename, size);
         }
         catch(JSONException e) {
             e.printStackTrace();

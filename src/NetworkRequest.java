@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.util.HashMap;
 
 class NetworkRequest {
-    private String body;
-    private HashMap<String, String> headers;
-    private OkHttpClient client;
+    private final String body;
+    private final HashMap<String, String> headers;
+    private final OkHttpClient client;
 
     NetworkRequest(String body, HashMap<String, String> headers, OkHttpClient client) {
         this.body = body;
@@ -34,7 +34,7 @@ class NetworkRequest {
             }
 
             Response response = client.newCall(builder.build()).execute();
-            if(response.isSuccessful()) {
+            if(response.isSuccessful() && response.body() != null) {
                 json = response.body().string();
             }
             response.close();

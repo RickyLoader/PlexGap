@@ -3,7 +3,7 @@ import org.json.JSONObject;
 
 public class Movie {
     private final String title, TMDBId, IMDBId, releaseDate, collection, rating, filename;
-    private long size;
+    private final long size;
 
     private Movie(String title, String TMDBId, String IMDBId, String collection, String releaseDate, String rating, String filename, long size) {
         this.title = title;
@@ -49,36 +49,20 @@ public class Movie {
     }
 
     String toJSON() {
-        StringBuilder builder = new StringBuilder();
-        String q = "\"";
-        String series = collection;
-        if(isCollection()) {
-            series = "{" + q + "id" + q + ":" + collection + "}";
-        }
-        builder
-                .append("{")
-                .append(q + "belongs_to_collection" + q + ":")
-                .append(series + ",")
-                .append(q + "size" + q + ":")
-                .append(q + size + q + ",")
-                .append(q + "tmdb_id" + q + ":")
-                .append(q + TMDBId + q + ",")
-                .append(q + "imdb_id" + q + ":")
-                .append(q + IMDBId + q + ",")
-                .append(q + "title" + q + ":")
-                .append(q + title + q + ",")
-                .append(q + "filename" + q + ":")
-                .append(q + filename + q + ",")
-                .append(q + "release_date" + q + ":")
-                .append(q + releaseDate + q + ",")
-                .append(q + "rating" + q + ":")
-                .append(q + rating + q)
-                .append("}");
-        return builder.toString();
+        return new JSONObject()
+                .put("belongs_to_collection", isCollection() ? new JSONObject().put("id", collection) : collection)
+                .put("size", size)
+                .put("tmdb_id", TMDBId)
+                .put("imdb_id", IMDBId)
+                .put("title", title)
+                .put("filename", filename)
+                .put("release_date", releaseDate)
+                .put("rating", rating)
+                .toString();
     }
 
-    int getSizeMegabyte() {
-        return Math.toIntExact(size / 1000);
+    long getSizeMegabyte() {
+        return size;
     }
 
     String getSizeSummary() {
@@ -93,12 +77,12 @@ public class Movie {
     /**
      * Create a movie object from a JSON object
      *
-     * @param json JSON representing a movie
+     * @param json JSON representing a movie either from JSON file or TMDB
      * @param size Size of movie given by Plex
-     * @param api  If JSON comes from TMDB or json file
+     * @param tmdb If JSON comes from TMDB or json file
      * @return A movie object created using information in the JSON
      */
-    static Movie createMovie(JSONObject json, long size, String filename, boolean api) {
+    static Movie createMovie(JSONObject json, long size, String filename, boolean tmdb) {
         Movie result = null;
         String collection = Collection.getCollection(json);
 
@@ -110,7 +94,7 @@ public class Movie {
             String TMDBId;
 
             // Key refactoring occurs when saving to json for clarity
-            if(api) {
+            if(tmdb) {
                 TMDBId = String.valueOf(json.getInt("id"));
                 rating = String.valueOf(json.getDouble("vote_average"));
                 title = json.getString("original_title");

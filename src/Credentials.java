@@ -12,7 +12,7 @@ public class Credentials {
     private String tmdbReadToken = null;
     private String jsonFile = null;
     private String libraryID = null;
-    private boolean authenticated;
+    private final boolean authenticated;
 
     public Credentials() {
         authenticated = readCredentials();

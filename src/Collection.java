@@ -3,16 +3,13 @@ import org.json.JSONObject;
 import java.util.HashMap;
 
 public class Collection {
-    private final String title;
+    private final String title, id;
     private final HashMap<String, Boolean> movies;
-    private final HashMap<String, String> titles;
-    private final String id;
 
-    public Collection(String id, String title, HashMap<String, Boolean> movies, HashMap<String, String> titles) {
+    public Collection(String id, String title, HashMap<String, Boolean> movies) {
         this.title = title;
         this.movies = movies;
         this.id = id;
-        this.titles = titles;
     }
 
     public String getId() {
@@ -37,10 +34,10 @@ public class Collection {
     }
 
     public String getSummary() {
-        StringBuilder summary = new StringBuilder();
+        JSONObject summary = new JSONObject();
         for(String movie : movies.keySet()) {
             if(!movies.get(movie)) {
-                summary.append("{\"media_type\":\"movie\",\"media_id\":" + Integer.valueOf(movie) + "},");
+                summary.put("media_type", "movie").put("media_id", Integer.valueOf(movie));
             }
         }
         return summary.toString();

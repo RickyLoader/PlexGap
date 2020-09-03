@@ -64,32 +64,11 @@ public class PlexManager {
      * @param movies List of movies found by chosen method
      */
     private static void processMovies(ArrayList<Movie> movies) {
-        System.out.println(movies.size() + " movies found!\n");
+        System.out.println("\n" + movies.size() + " movies found!\n");
         Scanner scan = new Scanner(System.in);
-        System.out.println("What would you like to do with your movies?\n\n1. Find missing sequels\n\n2. View movies by size\n\n3. View movies by rating\n\n5. Find misnamed movies\n\n");
-        switch(scan.nextLine()) {
-            case "1":
-                findMissingSequels(movies);
-                break;
-            case "2":
-                orderMoviesBySize(movies);
-                break;
-            case "3":
-                orderMoviesByRating(movies);
-                break;
-            case "4":
-                viewCollections(movies);
-                break;
-            case "5":
-                findMisnamedMovies(movies);
-        }
-    }
-
-    private static void findMisnamedMovies(ArrayList<Movie> movies) {
-        for(Movie movie : movies) {
-            if(!movie.getTitle().equals(movie.getFilename())){
-                System.out.println(movie.getFilename() + " | "+movie.getTitle());
-            }
+        System.out.println("What would you like to do with your movies?\n\n1. Find missing sequels\n");
+        if(scan.nextLine().equals("1")) {
+            findMissingSequels(movies);
         }
     }
 
@@ -215,16 +194,6 @@ public class PlexManager {
         TMDB.updateList(collections);
     }
 
-    private static void viewCollections(ArrayList<Movie> movies) {
-        HashSet<String> collections = new HashSet<>();
-        for(Movie movie : movies) {
-            if(movie.isCollection() && !collections.contains(movie.getCollection())) {
-                System.out.println(movie.getTitle() + " collection");
-            }
-            collections.add(movie.getCollection());
-        }
-    }
-
     /**
      * Create a collection object which holds the unique id of each movie in a series.
      *
@@ -281,30 +250,6 @@ public class PlexManager {
         catch(ParseException e) {
             e.printStackTrace();
             return false;
-        }
-    }
-
-    /**
-     * Order movies by TMDB rating
-     *
-     * @param movies List of movies
-     */
-    private static void orderMoviesByRating(ArrayList<Movie> movies) {
-        Collections.sort(movies, (o1, o2) -> Double.valueOf(o2.getRating()).compareTo(Double.valueOf(o1.getRating())));
-        for(Movie movie : movies) {
-            System.out.println(movie.getRatingSummary());
-        }
-    }
-
-    /**
-     * Order movies by size
-     *
-     * @param movies List of movies
-     */
-    private static void orderMoviesBySize(ArrayList<Movie> movies) {
-        Collections.sort(movies, (o1, o2) -> o1.getSizeMegabyte() - o2.getSizeMegabyte());
-        for(Movie movie : movies) {
-            System.out.println(movie.getSizeSummary());
         }
     }
 }

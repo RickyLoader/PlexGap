@@ -7,10 +7,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 class PlexServer {
-    private String ip, token, library;
-    private TheMovieDatabase TMDB;
-    private HashMap<String, String> headers;
-    private OkHttpClient client;
+    private final String ip, token, library;
+    private final TheMovieDatabase TMDB;
+    private final HashMap<String, String> headers;
+    private final OkHttpClient client;
 
     PlexServer(String ip, String token, String library, TheMovieDatabase TMDB, OkHttpClient client) {
         this.ip = ip;

@@ -1,14 +1,12 @@
 import okhttp3.OkHttpClient;
 import org.json.JSONObject;
-import sun.nio.ch.Net;
 
 import java.util.HashMap;
 import java.util.Scanner;
 
 class TheMovieDatabase {
-    private String key;
-    private String token;
-    private OkHttpClient client;
+    private final String key, token;
+    private final OkHttpClient client;
 
     TheMovieDatabase(String key, String token, OkHttpClient client) {
         this.key = key;
@@ -49,7 +47,7 @@ class TheMovieDatabase {
         while(name.isEmpty()) {
             name = scan.nextLine();
         }
-        String body = "{" + "\"name\"" + ":" + "\"" + name + "\",\"iso_639_1\":\"en\"}";
+        String body = new JSONObject().put("name", name).put("iso_639_1", "en").toString();
         String json = new NetworkRequest(body, headers, client).send("https://api.themoviedb.org/4/list");
         return getJsonValue(json, "id", true);
     }

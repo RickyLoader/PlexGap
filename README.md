@@ -60,11 +60,9 @@ If you have run the application before, you can select this option to prevent ha
 
 The application will first query your plex server for the contents of your library.
 
-Each item in your library has a unique `guid`, which is the id used by either IMDB or TMDB to identify a movie.
+This movie is passed to the TMDB API to find the collection id (if it belongs to a collection).
 
-This `guid` is passed to the TMDB API to find the collection id of the movie (if it belongs to a collection).
-
-This process can take a few minutes depending on the size of your library, so the results are stored in a json file named what has been specified in credentials.json. This can be used to quickly run the application again.
+This process can take a few minutes depending on the size of your library.
 
 ## Using the data
 

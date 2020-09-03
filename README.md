@@ -13,7 +13,7 @@ A temporary Plex token can be found by clicking the 3 dot icon on a movie in you
 
 The token is located in the address bar as `X-Plex-Token=YOUR_TOKEN_HERE`, only `YOUR_TOKEN_HERE` is required.
 
-The library id is found as `librarysectionID="x"`, only `x` is required. 
+The library id is found in the XML as `librarysectionID="x"`, only `x` is required. 
 
 ### Plex IP
 

@@ -60,7 +60,7 @@ If you have run the application before, you can select this option to prevent ha
 
 The application will first query your plex server for the contents of your library.
 
-This movie is passed to the TMDB API to find the collection id (if it belongs to a collection).
+Each movie is passed to the TMDB API to find the collection id (if it belongs to a collection).
 
 This process can take a few minutes depending on the size of your library.
 

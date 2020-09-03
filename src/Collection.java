@@ -1,12 +1,12 @@
 import org.json.JSONObject;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 
 public class Collection {
     private final String title, id;
-    private final HashMap<String, Boolean> movies;
+    private final ArrayList<String> movies;
 
-    public Collection(String id, String title, HashMap<String, Boolean> movies) {
+    public Collection(String id, String title, ArrayList<String> movies) {
         this.title = title;
         this.movies = movies;
         this.id = id;
@@ -17,7 +17,7 @@ public class Collection {
     }
 
     public void addMovie(Movie movie) {
-        movies.put(movie.getTMDBId(), true);
+        movies.remove(movie.getTMDBId());
     }
 
     public String getTitle() {
@@ -25,20 +25,13 @@ public class Collection {
     }
 
     public boolean collectionComplete() {
-        for(String movie : movies.keySet()) {
-            if(!movies.get(movie)) {
-                return false;
-            }
-        }
-        return true;
+        return movies.isEmpty();
     }
 
     public String getSummary() {
         JSONObject summary = new JSONObject();
-        for(String movie : movies.keySet()) {
-            if(!movies.get(movie)) {
-                summary.put("media_type", "movie").put("media_id", Integer.valueOf(movie));
-            }
+        for(String movie : movies) {
+            summary.put("media_type", "movie").put("media_id", Integer.valueOf(movie));
         }
         return summary.toString();
     }
@@ -50,7 +43,6 @@ public class Collection {
      * @return null or unique id of movie collection
      */
     public static String getCollection(JSONObject json) {
-
         if(json == null) {
             return null;
         }

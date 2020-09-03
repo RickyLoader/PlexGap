@@ -160,38 +160,36 @@ public class PlexManager {
         int count = 1;
 
         for(Movie movie : movies) {
-            if(movie.isCollection()) {
-                System.out.println("Checking " + movie.getTitle() + " (" + (count) + "/" + movies.size() + ")");
-                String id = movie.getCollection();
-
-                // If the collection has been seen before
-                if(collections.containsKey(id)) {
-                    System.out.println(movie.getTitle() + " is a member of the " + collections.get(id).getTitle() + " collection - marking as seen\n\n");
-                }
-                else {
-                    System.out.println(movie.getTitle() + " is a member of a collection which has not yet been seen - fetching collection info...\n");
-
-                    // Query TMDB for the movies belonging to the collection
-                    String url = "https://api.themoviedb.org/3/collection/" + id + "?api_key=" + credentials.getTmdbKey() + "&language=en-US";
-
-                    // Create an object to hold the collection information and store it in the map
-                    String collectionJson = new NetworkRequest(null, null, client).send(url);
-
-                    if(collectionJson == null) {
-                        System.out.println(url);
-                        continue;
-                    }
-                    Collection collection = getCollectionInfo(id, collectionJson);
-                    System.out.println("Collection has been found - " + movie.getTitle() + " belongs to the " + collection.getTitle() + "\n\n");
-                    collections.put(collection.getId(), collection);
-                }
-
-                // Else mark the current movie as present in the library
-                collections.get(id).addMovie(movie);
+            if(!movie.isCollection()) {
+                continue;
             }
-            count += 1;
+            System.out.println("Checking " + movie.getTitle() + " (" + (count) + "/" + movies.size() + ")");
+            String id = movie.getCollectionId();
+
+            if(collections.containsKey(id)) {
+                System.out.println(movie.getTitle() + " is a member of the " + collections.get(id).getTitle() + " collection - marking as seen\n\n");
+            }
+            else {
+                System.out.println(movie.getTitle() + " is a member of a collection which has not yet been seen - fetching collection info...\n");
+
+                String url = "https://api.themoviedb.org/3/collection/" + id + "?api_key=" + credentials.getTmdbKey() + "&language=en-US";
+
+                String collectionJson = new NetworkRequest(null, null, client).send(url);
+
+                if(collectionJson == null) {
+                    System.out.println(url);
+                    continue;
+                }
+                Collection collection = getCollectionInfo(id, collectionJson);
+                System.out.println("Collection has been found - " + movie.getTitle() + " belongs to the " + collection.getTitle() + "\n\n");
+                collections.put(collection.getId(), collection);
+            }
+
+            collections.get(id).addMovie(movie);
+
+            count++;
         }
-        TMDB.updateList(collections);
+        TMDB.createList(collections);
     }
 
     /**
@@ -207,11 +205,9 @@ public class PlexManager {
             JSONObject file = new JSONObject(json);
             String title = file.getString("name");
 
-            // Movies belonging to the series
             JSONArray movies = file.getJSONArray("parts");
 
-            // Unique id of a movie -> existence in library (false by default)
-            HashMap<String, Boolean> parts = new HashMap<>();
+            ArrayList<String> parts = new ArrayList<>();
 
             for(int i = 0; i < movies.length(); i++) {
                 JSONObject movie = movies.getJSONObject(i);
@@ -222,7 +218,7 @@ public class PlexManager {
 
                     // Ignore movies which are not released
                     if(validDate(date)) {
-                        parts.put(String.valueOf(movie.getInt("id")), false);
+                        parts.add(String.valueOf(movie.getInt("id")));
                     }
                 }
             }

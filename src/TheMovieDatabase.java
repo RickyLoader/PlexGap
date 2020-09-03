@@ -1,4 +1,5 @@
 import okhttp3.OkHttpClient;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.HashMap;
@@ -36,11 +37,7 @@ class TheMovieDatabase {
      * @param accessToken Temporary access token granted by user
      * @return id of list for populating
      */
-    private String createList(String accessToken) {
-        HashMap<String, String> headers = new HashMap<>();
-        headers.put("authorization", "Bearer " + accessToken);
-        headers.put("content-type", "application/json;charset=utf-8");
-
+    private String createEmptyList(String accessToken) {
         Scanner scan = new Scanner(System.in);
         String name = "";
         System.out.println("Enter a name for your list:\n\n");
@@ -48,7 +45,7 @@ class TheMovieDatabase {
             name = scan.nextLine();
         }
         String body = new JSONObject().put("name", name).put("iso_639_1", "en").toString();
-        String json = new NetworkRequest(body, headers, client).send("https://api.themoviedb.org/4/list");
+        String json = new NetworkRequest(body, getRequestHeaders(accessToken), client).send("https://api.themoviedb.org/4/list");
         return getJsonValue(json, "id", true);
     }
 
@@ -57,29 +54,38 @@ class TheMovieDatabase {
      *
      * @param collections List of collections, find incomplete collections to add missing movies to TMDB list
      */
-    void updateList(HashMap<String, Collection> collections) {
-
-        StringBuilder json = new StringBuilder("{\"items\":[");
+    void createList(HashMap<String, Collection> collections) {
+        JSONObject list = new JSONObject();
+        JSONArray movies = new JSONArray();
 
         for(String id : collections.keySet()) {
             Collection c = collections.get(id);
             if(!c.collectionComplete()) {
-                json.append(c.getSummary());
+                movies.put(new JSONObject(c.getSummary()));
             }
         }
-        String body = json.toString();
-        body = body.substring(0, body.length() - 1);
-        body += "]}";
+        String body = list.put("items", movies).toString();
+        System.out.println(body);
+
         String accessToken = getWriteAccess();
         System.out.println("\n\nCreating list...\n\n");
-        String listID = createList(accessToken);
+        String listID = createEmptyList(accessToken);
 
-        HashMap<String, String> headers = new HashMap<>();
-        headers.put("authorization", "Bearer " + accessToken);
-        headers.put("content-type", "application/json;charset=utf-8");
-
-        new NetworkRequest(body, headers, client).send("https://api.themoviedb.org/4/list/" + listID + "/items");
+        new NetworkRequest(list.put("items",movies).toString(), getRequestHeaders(accessToken), client).send("https://api.themoviedb.org/4/list/" + listID + "/items");
         System.out.println("\n\nYour list has been created!\n\nVisit:\n\n" + "https://www.themoviedb.org/list/" + listID);
+    }
+
+    /**
+     * Get the required headers to authenticate with TMDB
+     *
+     * @param token Token required for authorization header
+     * @return Request headers
+     */
+    private HashMap<String, String> getRequestHeaders(String token) {
+        HashMap<String, String> headers = new HashMap<>();
+        headers.put("authorization", "Bearer " + token);
+        headers.put("content-type", "application/json;charset=utf-8");
+        return headers;
     }
 
     /**
@@ -88,11 +94,7 @@ class TheMovieDatabase {
      * @return access token for write access
      */
     private String getWriteAccess() {
-        HashMap<String, String> headers = new HashMap<>();
-        headers.put("authorization", "Bearer " + token);
-        headers.put("content-type", "application/json;charset=utf-8");
-
-        // Get request token
+        HashMap<String, String> headers = getRequestHeaders(token);
         String json = new NetworkRequest("{}", headers, client).send("https://api.themoviedb.org/4/auth/request_token");
 
         // Ask the user to authenticate the request token
@@ -107,7 +109,7 @@ class TheMovieDatabase {
         }
 
         // Use the authenticated request token to obtain an access token for write permission
-        String body = "{" + "\"request_token\"" + ":" + "\"" + requestToken + "\"}";
+        String body = new JSONObject().put("request_token", requestToken).toString();
         json = new NetworkRequest(body, headers, client).send("https://api.themoviedb.org/4/auth/access_token");
         return getJsonValue(json, "access_token", false);
     }

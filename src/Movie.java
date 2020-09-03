@@ -2,14 +2,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class Movie {
-    private final String title, TMDBId, IMDBId, releaseDate, collection, rating, filename;
+    private final String title, TMDBId, IMDBId, releaseDate, collectionId, rating, filename;
     private final long size;
 
-    private Movie(String title, String TMDBId, String IMDBId, String collection, String releaseDate, String rating, String filename, long size) {
+    private Movie(String title, String TMDBId, String IMDBId, String collectionId, String releaseDate, String rating, String filename, long size) {
         this.title = title;
         this.TMDBId = TMDBId;
         this.IMDBId = IMDBId;
-        this.collection = collection;
+        this.collectionId = collectionId;
         this.releaseDate = releaseDate;
         this.rating = rating;
         this.size = size;
@@ -32,8 +32,8 @@ public class Movie {
         return TMDBId;
     }
 
-    String getCollection() {
-        return collection;
+    String getCollectionId() {
+        return collectionId;
     }
 
     String getTitle() {
@@ -41,7 +41,7 @@ public class Movie {
     }
 
     boolean isCollection() {
-        return collection != null;
+        return collectionId != null;
     }
 
     String getIMDBId() {
@@ -50,7 +50,7 @@ public class Movie {
 
     String toJSON() {
         return new JSONObject()
-                .put("belongs_to_collection", isCollection() ? new JSONObject().put("id", collection) : collection)
+                .put("belongs_to_collection", isCollection() ? new JSONObject().put("id", collectionId) : collectionId)
                 .put("size", size)
                 .put("tmdb_id", TMDBId)
                 .put("imdb_id", IMDBId)

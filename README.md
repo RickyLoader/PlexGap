@@ -21,7 +21,9 @@ The IP address that your Plex server runs on including port. E.g: `192.168.1.138
 
 ### TMDB API Key & TMDB Read Access Token
 
-PlexGap utelises the TMDB API to find out whether a movie is part of a series, and to find the other members of these series. The read acccess token allows the application temporary write access to create a list on your TMDB profile containing the movies that were found.
+PlexGap utelises the TMDB API to find out whether a movie is part of a series. 
+
+The read acccess token allows temporary write access to create a list on your TMDB profile containing the movies that were found.
 
 To obtain an API key for TMDB, create a free account and verify your email.
 

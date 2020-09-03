@@ -64,8 +64,6 @@ class TheMovieDatabase {
                 movies.put(new JSONObject(c.getSummary()));
             }
         }
-        String body = list.put("items", movies).toString();
-        System.out.println(body);
 
         String accessToken = getWriteAccess();
         System.out.println("\n\nCreating list...\n\n");

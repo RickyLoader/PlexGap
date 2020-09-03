@@ -99,23 +99,27 @@ public class PlexManager {
      * @return ArrayList of movie objects
      */
     private static ArrayList<Movie> readSaved() {
-        HashMap<String, Movie> saved = new HashMap<>();
-        ArrayList<Movie> movies = new ArrayList<>();
+        String fileName = credentials.getMovieJsonFileName();
+        String fileContent = FileHandler.getFileContents(fileName);
 
-        String file = FileHandler.getFileContents(credentials.getMovieJsonFileName());
-        if(file == null) {
+        if(fileContent == null) {
             return null;
         }
 
-        JSONArray allMovies = new JSONObject(file).getJSONArray("movies");
-        for(int i = 0; i < allMovies.length(); i++) {
-            JSONObject jsonMovie = allMovies.getJSONObject(i);
+        ArrayList<Movie> movies = new ArrayList<>();
+        HashMap<String, Movie> seen = new HashMap<>();
+
+        JSONObject file = new JSONObject(fileContent);
+        JSONArray fileMovies = file.getJSONArray("movies");
+
+        for(int i = 0; i < fileMovies.length(); i++) {
+            JSONObject jsonMovie = fileMovies.getJSONObject(i);
             Movie movie = Movie.createMovie(jsonMovie, jsonMovie.getLong("size"), jsonMovie.getString("filename"), false);
+            movies.add(movie);
 
             // Plex only supplies one id, it could be either so need both to check
-            saved.put(movie.getIMDBId(), movie);
-            saved.put(movie.getTMDBId(), movie);
-            movies.add(movie);
+            seen.put(movie.getIMDBId(), movie);
+            seen.put(movie.getTMDBId(), movie);
         }
 
         System.out.println("Checking Plex for movies not currently in " + credentials.getMovieJsonFileName() + " ...\n");
@@ -123,21 +127,22 @@ public class PlexManager {
         JSONArray plexLibrary = plexServer.getLibraryOverview();
 
         int missing = 0;
-
         for(int i = 0; i < plexLibrary.length(); i++) {
             JSONObject movieContainer = plexLibrary.getJSONObject(i);
             String id = plexServer.getMovieID(movieContainer.getString("guid"));
-            if(!saved.containsKey(id)) {
-                Movie movie = plexServer.jsonToMovie(movieContainer);
-                if(movie != null) {
-                    missing++;
-                    System.out.println("\"" + movie.getTitle() + "\" was found on Plex and not in " + credentials.getMovieJsonFileName() + "\n");
-                    FileHandler.appendMovie(credentials.getMovieJsonFileName(), movie);
-                    movies.add(movie);
-                }
+            if(seen.containsKey(id)) {
+                continue;
+            }
+            Movie movie = plexServer.jsonToMovie(movieContainer);
+            if(movie != null) {
+                missing++;
+                System.out.println(movie.getTitle() + " was found on Plex and not in " + credentials.getMovieJsonFileName() + "\n");
+                fileMovies.put(new JSONObject(movie.toJSON()));
+                movies.add(movie);
             }
         }
-        System.out.println(missing == 0 ? credentials.getMovieJsonFileName() + " is up to date!\n" : missing + " Movies added to " + credentials.getMovieJsonFileName() + " from Plex!\n");
+        FileHandler.writeToFile(fileName, file.toString(), false);
+        System.out.println(missing == 0 ? credentials.getMovieJsonFileName() + " is up to date!\n" : missing + " movies added to " + credentials.getMovieJsonFileName() + " from Plex!\n");
         return movies;
     }
 
@@ -147,9 +152,10 @@ public class PlexManager {
      * @return ArrayList of movie objects
      */
     private static ArrayList<Movie> getPlexMovies() {
-        FileHandler.writeToFile(credentials.getMovieJsonFileName(), "{\"movies\":[", true);
         ArrayList<Movie> movies = new ArrayList<>();
         JSONArray plexLibrary = plexServer.getLibraryOverview();
+
+        JSONArray jsonArray = new JSONArray();
 
         for(int i = 0; i < plexLibrary.length(); i++) {
             System.out.println("Getting info for movie " + (i + 1) + "/" + plexLibrary.length());
@@ -157,15 +163,10 @@ public class PlexManager {
 
             if(movie != null) {
                 movies.add(movie);
-                boolean last = i == plexLibrary.length() - 1;
-                String movieJSON = movie.toJSON();
-                if(!last) {
-                    movieJSON += ",";
-                }
-                FileHandler.writeToFile(credentials.getMovieJsonFileName(), movieJSON, true);
+                jsonArray.put(new JSONObject(movie.toJSON()));
             }
         }
-        FileHandler.writeToFile(credentials.getMovieJsonFileName(), "]}", true);
+        FileHandler.writeToFile(credentials.getMovieJsonFileName(), new JSONObject().put("movies", jsonArray).toString(), true);
         return movies;
     }
 
@@ -175,8 +176,6 @@ public class PlexManager {
      * @param movies An ArrayList of movie objects
      */
     private static void findMissingSequels(ArrayList<Movie> movies) {
-
-        // Store collections via their unique id
         HashMap<String, Collection> collections = new HashMap<>();
 
         int count = 1;
@@ -245,11 +244,8 @@ public class PlexManager {
             // Unique id of a movie -> existence in library (false by default)
             HashMap<String, Boolean> parts = new HashMap<>();
 
-            // Unique id of a movie -> title
-            HashMap<String, String> titles = new HashMap<>();
-
             for(int i = 0; i < movies.length(); i++) {
-                JSONObject movie = (JSONObject) movies.get(i);
+                JSONObject movie = movies.getJSONObject(i);
 
                 // Ignore movies without a release date (typically announced sequels with no release date)
                 if(movie.has("release_date") && !movie.isNull("release_date")) {
@@ -258,11 +254,10 @@ public class PlexManager {
                     // Ignore movies which are not released
                     if(validDate(date)) {
                         parts.put(String.valueOf(movie.getInt("id")), false);
-                        titles.put(String.valueOf(movie.getInt("id")), movie.getString("title"));
                     }
                 }
             }
-            collection = new Collection(id, title, parts, titles);
+            collection = new Collection(id, title, parts);
 
         }
         catch(Exception e) {

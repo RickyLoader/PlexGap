@@ -9,11 +9,11 @@ To get started, edit credentials.json and provide the required credentials.
 
 ### Plex token & Library ID
 
-A temporary Plex token can be found by right clicking a movie in your library, selecting `Get Info` from the drop down, and then clicking `View XML`.
+A temporary Plex token can be found by clicking the 3 dot icon on a movie in your library, selecting `Get Info` from the drop down, and then clicking `View XML`.
 
 The token is located in the address bar as `X-Plex-Token=YOUR_TOKEN_HERE`, only `YOUR_TOKEN_HERE` is required.
 
-The library id is found as `librarysectionID="x"`, only `x` is required. 
+The library id is found in the XML as `librarysectionID="x"`, only `x` is required. 
 
 ### Plex IP
 
@@ -21,7 +21,9 @@ The IP address that your Plex server runs on including port. E.g: `192.168.1.138
 
 ### TMDB API Key & TMDB Read Access Token
 
-PlexGap utelises the TMDB API to find out whether a movie is part of a series, and to find the other members of these series. The read acccess token allows the application temporary write access to create a list on your TMDB profile containing the movies that were found.
+PlexGap utelises the TMDB API to find out whether a movie is part of a series. 
+
+The read acccess token allows temporary write access to create a list on your TMDB profile containing the movies that were found.
 
 To obtain an API key for TMDB, create a free account and verify your email.
 
@@ -58,11 +60,9 @@ If you have run the application before, you can select this option to prevent ha
 
 The application will first query your plex server for the contents of your library.
 
-Each item in your library has a unique `guid`, which is the id used by either IMDB or TMDB to identify a movie.
+Each movie is then passed to the TMDB API to find the collection id (if it belongs to a collection).
 
-This `guid` is passed to the TMDB API to find the collection id of the movie (if it belongs to a collection).
-
-This process can take a few minutes depending on the size of your library, so the results are stored in a json file named what has been specified in credentials.json. This can be used to quickly run the application again.
+This process can take a few minutes depending on the size of your library.
 
 ## Using the data
 
@@ -76,14 +76,7 @@ What would you like to do with your movies?
 
 ### Find missing sequels
 
-The application will go through all items which belong to a collection and query the TMDB API with the collection id
-(if it has not done so already for a previous item). 
-
-This will provide a list of items which belong to the collection.
-
-As items belonging to the same collection are found, they are marked as seen in this list.
-
-This process does not take long as only one API call is made per collection.
+The application will go through all movies which belong to a collection and query the TMDB API to find the other movies in these collections and compare them to the Plex library.
 
 Upon checking all movies, you will be prompted with a link to follow:
 
@@ -99,7 +92,7 @@ This allows it to create a TMDB list containing your missing movies.
 Type "ok" when ready:
 ```
 
-This is due to TMDB requiring multi part authentication in allowing applications to write to your profile.
+TMDB requires authentication in allowing applications to write to your profile.
 
 First the application passes your provided `read access token` to obtain a `request token`. 
 
@@ -118,4 +111,4 @@ https://www.themoviedb.org/list/{NEW_LIST_ID}
 ```
 ## Note
 
-TMDB collections are curated but can be quite broad and often lack any granularity - (There is a singular James Bond collection, not split by actor). As this list is created on your profile, you can remove any movies you don't want and import it in to Radarr.
+TMDB collections are curated but can be quite broad/generalised - There is a singular James Bond collection, not one per actor. As this list is created on your profile, you can remove any movies you don't want and import it in to Radarr.

@@ -76,14 +76,7 @@ What would you like to do with your movies?
 
 ### Find missing sequels
 
-The application will go through all items which belong to a collection and query the TMDB API with the collection id
-(if it has not done so already for a previous item). 
-
-This will provide a list of items which belong to the collection.
-
-As items belonging to the same collection are found, they are marked as seen in this list.
-
-This process does not take long as only one API call is made per collection.
+The application will go through all movies which belong to a collection and query the TMDB API to find the other movies in these collections and compare them to the Plex library.
 
 Upon checking all movies, you will be prompted with a link to follow:
 
@@ -99,7 +92,7 @@ This allows it to create a TMDB list containing your missing movies.
 Type "ok" when ready:
 ```
 
-This is due to TMDB requiring multi part authentication in allowing applications to write to your profile.
+TMDB requires authentication in allowing applications to write to your profile.
 
 First the application passes your provided `read access token` to obtain a `request token`. 
 

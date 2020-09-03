@@ -118,4 +118,4 @@ https://www.themoviedb.org/list/{NEW_LIST_ID}
 ```
 ## Note
 
-TMDB collections are curated but can be quite broad and often lack any granularity - (There is a singular James Bond collection, not split by actor). As this list is created on your profile, you can remove any movies you don't want and import it in to Radarr.
+TMDB collections are curated but can be quite broad/generalised - There is a singular James Bond collection, not one per actor. As this list is created on your profile, you can remove any movies you don't want and import it in to Radarr.

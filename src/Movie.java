@@ -61,12 +61,12 @@ public class Movie {
                 .toString();
     }
 
-    long getSizeMegabyte() {
-        return size;
+    int getSizeKilobyte() {
+        return (int) Math.ceil((double) (size / 1024));
     }
 
     String getSizeSummary() {
-        return title + " --- " + String.format("%,d MB", getSizeMegabyte());
+        return " --- " + String.format("%,d MB", getSizeKilobyte());
     }
 
     String getRatingSummary() {

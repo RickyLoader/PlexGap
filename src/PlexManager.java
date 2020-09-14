@@ -70,6 +70,12 @@ public class PlexManager {
         if(scan.nextLine().equals("1")) {
             findMissingSequels(movies);
         }
+        else {
+            movies.sort((o1, o2) -> o2.getRating().compareTo(o1.getRating()));
+            for(Movie m : movies) {
+                System.out.println(m.getRatingSummary() + " " + m.getSizeSummary());
+            }
+        }
     }
 
     /**
@@ -139,7 +145,6 @@ public class PlexManager {
         for(int i = 0; i < plexLibrary.length(); i++) {
             System.out.println("Getting info for movie " + (i + 1) + "/" + plexLibrary.length());
             Movie movie = plexServer.jsonToMovie(plexLibrary.getJSONObject(i));
-
             if(movie != null) {
                 movies.add(movie);
                 jsonArray.put(new JSONObject(movie.toJSON()));

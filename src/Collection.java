@@ -2,38 +2,69 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
+/**
+ * Hold information on a movie collection
+ */
 public class Collection {
     private final String title, id;
     private final ArrayList<String> movies;
 
+    /**
+     * Create a movie collection
+     *
+     * @param id     Collection id
+     * @param title  Title of collection
+     * @param movies List of movie ids
+     */
     public Collection(String id, String title, ArrayList<String> movies) {
         this.title = title;
         this.movies = movies;
         this.id = id;
     }
 
+    /**
+     * Get the collection id
+     *
+     * @return Collection id
+     */
     public String getId() {
         return id;
     }
 
-    public void addMovie(Movie movie) {
-        movies.remove(movie.getTMDBId());
+    /**
+     * Get the list of movie ids in the collection
+     *
+     * @return List of movie ids in collection
+     */
+    public ArrayList<String> getMovies() {
+        return movies;
     }
 
+    /**
+     * Get the title of the collection
+     *
+     * @return Collection title
+     */
     public String getTitle() {
         return title;
     }
 
-    public boolean collectionComplete() {
-        return movies.isEmpty();
+    /**
+     * Mark a movie as found in the collection
+     *
+     * @param movie Movie to mark as found
+     */
+    public void markFound(Movie movie) {
+        movies.remove(movie.getTMDBId());
     }
 
-    public String getSummary() {
-        JSONObject summary = new JSONObject();
-        for(String movie : movies) {
-            summary.put("media_type", "movie").put("media_id", Integer.valueOf(movie));
-        }
-        return summary.toString();
+    /**
+     * Check if the collection is complete (all movies have been removed/marked as found)
+     *
+     * @return Collection is complete
+     */
+    public boolean isComplete() {
+        return movies.isEmpty();
     }
 
     /**

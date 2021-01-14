@@ -2,27 +2,37 @@ import okhttp3.OkHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-class TheMovieDatabase {
+/**
+ * Handle TMDB operations
+ */
+public class TheMovieDatabase {
     private final String key, token;
     private final OkHttpClient client;
 
-    TheMovieDatabase(String key, String token, OkHttpClient client) {
+    /**
+     * Create the movie database.
+     *
+     * @param key    API key
+     * @param token  Read access token
+     * @param client Network client for API calls
+     */
+    public TheMovieDatabase(String key, String token, OkHttpClient client) {
         this.key = key;
         this.token = token;
         this.client = client;
     }
 
     /**
-     * Query the TMDB API for series information given the guid, e.g: "com.plexapp.agents.imdb://tt0309593?lang=en".
-     * Extract the unique id from the guid to query the TMDB API
+     * Query the TMDB API for info on a movie from the given id
      *
-     * @param id The rating agent used by Plex to pull the rating for the movie. Either points to TMDB or IMDB
+     * @param id Movie id
      * @return JSON summary of the movie
      */
-    String getMovieInfo(String id) {
+    public String getMovieInfo(String id) {
         String json = null;
         if(id != null) {
             String url = "https://api.themoviedb.org/3/movie/" + id + "?api_key=" + key + "&language=en-US";
@@ -32,12 +42,27 @@ class TheMovieDatabase {
     }
 
     /**
-     * Create an empty list for the movies to populate
+     * Query the TMDB API for info on a movie collection from the given id
      *
-     * @param accessToken Temporary access token granted by user
-     * @return id of list for populating
+     * @param id Collection id
+     * @return JSON summary of the collection
      */
-    private String createEmptyList(String accessToken) {
+    public String getCollectionInfo(String id) {
+        String json = null;
+        if(id != null) {
+            String url = "https://api.themoviedb.org/3/collection/" + id + "?api_key=" + key + "&language=en-US";
+            json = new NetworkRequest(null, null, client).send(url);
+        }
+        return json;
+    }
+
+    /**
+     * Create an empty list for movies to later populate
+     *
+     * @param writeAccessToken Temporary write access token granted by user to create the list
+     * @return id of newly created list
+     */
+    private String createEmptyList(String writeAccessToken) {
         Scanner scan = new Scanner(System.in);
         String name = "";
         System.out.println("Enter a name for your list:\n\n");
@@ -45,32 +70,45 @@ class TheMovieDatabase {
             name = scan.nextLine();
         }
         String body = new JSONObject().put("name", name).put("iso_639_1", "en").toString();
-        String json = new NetworkRequest(body, getRequestHeaders(accessToken), client).send("https://api.themoviedb.org/4/list");
+        String json = new NetworkRequest(
+                body,
+                getRequestHeaders(writeAccessToken),
+                client
+        ).send("https://api.themoviedb.org/4/list");
         return getJsonValue(json, "id", true);
     }
 
     /**
-     * Get write access from the user and create + populate a list on TMDB
+     * Get write access from the user.
+     * Create and populate a list with the provided list of movies
      *
-     * @param collections List of collections, find incomplete collections to add missing movies to TMDB list
+     * @param movies List of movies to add to the list
      */
-    void createList(HashMap<String, Collection> collections) {
+    public void createList(ArrayList<Movie> movies) {
         JSONObject list = new JSONObject();
-        JSONArray movies = new JSONArray();
+        JSONArray movieJSON = new JSONArray();
 
-        for(String id : collections.keySet()) {
-            Collection c = collections.get(id);
-            if(!c.collectionComplete()) {
-                movies.put(new JSONObject(c.getSummary()));
-            }
+        for(Movie movie : movies) {
+            movieJSON.put(
+                    new JSONObject()
+                            .put("media_type", "movie")
+                            .put("media_id", Integer.valueOf(movie.getTMDBId()))
+            );
         }
 
         String accessToken = getWriteAccess();
         System.out.println("\n\nCreating list...\n\n");
         String listID = createEmptyList(accessToken);
 
-        new NetworkRequest(list.put("items",movies).toString(), getRequestHeaders(accessToken), client).send("https://api.themoviedb.org/4/list/" + listID + "/items");
-        System.out.println("\n\nYour list has been created!\n\nVisit:\n\n" + "https://www.themoviedb.org/list/" + listID);
+        new NetworkRequest(
+                list.put("items", movieJSON).toString(),
+                getRequestHeaders(accessToken),
+                client
+        ).send("https://api.themoviedb.org/4/list/" + listID + "/items");
+
+        System.out.println(
+                "\n\nYour list has been created!\n\nVisit:\n\n" + "https://www.themoviedb.org/list/" + listID
+        );
     }
 
     /**
@@ -87,18 +125,26 @@ class TheMovieDatabase {
     }
 
     /**
-     * Retrieve temporary write access to user TMDB account for creation of list
+     * Retrieve a temporary write access token to the user's TMDB profile
      *
-     * @return access token for write access
+     * @return Write access token
      */
     private String getWriteAccess() {
         HashMap<String, String> headers = getRequestHeaders(token);
-        String json = new NetworkRequest("{}", headers, client).send("https://api.themoviedb.org/4/auth/request_token");
+        String json = new NetworkRequest(
+                "{}",
+                headers,
+                client
+        ).send("https://api.themoviedb.org/4/auth/request_token");
 
         // Ask the user to authenticate the request token
         String requestToken = getJsonValue(json, "request_token", false);
         String url = "https://www.themoviedb.org/auth/access?request_token=" + requestToken;
-        System.out.println("Please visit:\n\n" + url + "\n\nTo approve the application, this allows it to create a TMDB list containing your missing movies.\n\nType \"ok\" when ready:\n\n");
+        System.out.println(
+                "Please visit:\n\n" + url + "\n\nTo approve the application, this allows" +
+                        " it to create a TMDB list containing your missing movies.\n\nType \"ok\" when ready:\n\n"
+        );
+
         String answer = "";
         Scanner scan = new Scanner(System.in);
 

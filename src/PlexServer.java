@@ -6,15 +6,27 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-class PlexServer {
+/**
+ * Handle Plex server operations
+ */
+public class PlexServer {
     private final String ip, token, library;
     private final TheMovieDatabase TMDB;
     private final HashMap<String, String> headers;
     private final OkHttpClient client;
 
-    PlexServer(String ip, String token, String library, TheMovieDatabase TMDB, OkHttpClient client) {
-        this.ip = ip;
-        this.token = token;
+    /**
+     * Create the Plex server
+     *
+     * @param ip      IP of plex server
+     * @param token   Plex token
+     * @param library Plex library id
+     * @param TMDB    TMDB
+     * @param client  Network client for API calls
+     */
+    public PlexServer(String ip, String token, String library, TheMovieDatabase TMDB, OkHttpClient client) {
+        this.ip = "http://" + ip + "/library";
+        this.token = "?X-Plex-Token=" + token;
         this.TMDB = TMDB;
         this.library = library;
         this.client = client;
@@ -24,10 +36,30 @@ class PlexServer {
         headers.put("accept", "application/json");
     }
 
-    JSONArray getLibraryOverview() {
-        String allMovieEndpoint = ip + "/sections/" + library + "/all/" + token;
-        String library = new NetworkRequest(null, headers, client).send(allMovieEndpoint);
-        return new JSONObject(library).getJSONObject("MediaContainer").getJSONArray("Metadata");
+    /**
+     * Get the Plex library overview
+     *
+     * @return List of movies on Plex
+     */
+    public JSONArray getLibraryOverview() {
+        String libraryJSON = new NetworkRequest(null, headers, client)
+                .send(ip + "/sections/" + library + "/all/" + token);
+        return new JSONObject(libraryJSON).getJSONObject("MediaContainer").getJSONArray("Metadata");
+    }
+
+    /**
+     * Get the overview for a specific movie
+     *
+     * @param ratingKey Plex ratingKey
+     * @return Specific movie metadata
+     */
+    public JSONObject getMovieOverview(String ratingKey) {
+        String movieJSON = new NetworkRequest(null, headers, client)
+                .send(ip + "/metadata/" + ratingKey + token);
+        return new JSONObject(movieJSON)
+                .getJSONObject("MediaContainer")
+                .getJSONArray("Metadata")
+                .getJSONObject(0);
     }
 
     /**
@@ -65,13 +97,27 @@ class PlexServer {
      * @param movieDetails General overview of a specific movie given by Plex
      * @return A movie object containing the info
      */
-    Movie jsonToMovie(JSONObject movieDetails) {
+    public Movie jsonToMovie(JSONObject movieDetails) {
         Movie movie = null;
-        long movieSize = movieDetails.getJSONArray("Media").getJSONObject(0).getJSONArray("Part").getJSONObject(0).getLong("size");
+        long movieSize = movieDetails
+                .getJSONArray("Media")
+                .getJSONObject(0)
+                .getJSONArray("Part")
+                .getJSONObject(0)
+                .getLong("size");
         String filename = movieDetails.getString("title");
 
-        // Get series information JSON from the TMDB API using the guid, e.g: "com.plexapp.agents.imdb://tt0309593?lang=en"
-        String json = TMDB.getMovieInfo(getMovieID(movieDetails.getString("guid")));
+        String guid = movieDetails.getString("guid");
+
+        // Movie only has a plex id
+        if(guid.contains("plex://")) {
+            guid = getMovieOverview(movieDetails.getString("ratingKey"))
+                    .getJSONArray("Guid")
+                    .getJSONObject(0)
+                    .getString("id");
+        }
+
+        String json = TMDB.getMovieInfo(getMovieID(guid));
         if(json != null) {
             movie = Movie.createMovie(new JSONObject(json), movieSize, filename, true);
         }
